@@ -3,7 +3,6 @@ import authController from "../controllers/authController.js";
 import passport from "../middlewares/passport.js";
 import dotenv from "dotenv";
 import authMiddleware from "../middlewares/authMiddleware.js";
-import bcrypt from "bcrypt";
 
 const router = Router();
 dotenv.config();
