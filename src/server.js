@@ -12,6 +12,16 @@ import { rateLimit } from "express-rate-limit";
 import { RedisStore } from "rate-limit-redis";
 import logger from "./utils/logger.js";
 
+import authRoute from "./routes/authRoute.js";
+import userRoute from "./routes/userRoute.js";
+import productRoute from "./routes/productRoute.js";
+import reviewRoute from "./routes/reviewRoute.js";
+import userRoleRoute from "./routes/userRoleRoute.js";
+import orderRoute from "./routes/orderRoute.js";
+import shoppingCartRoute from "./routes/shoppingCartRoute.js";
+import categoryRoute from "./routes/categoryRoute.js";
+import userAddressRoute from "./routes/userAddressRoute.js";
+
 const app = express();
 const redisClient = new Redis(process.env.REDIS_URL);
 
@@ -84,6 +94,39 @@ const sensitiveEndpointsLimiter = rateLimit({
   }),
 });
 
+app.use("/api/v1/auth/signup", sensitiveEndpointsLimiter);
+app.use("/api/v1/auth", authRoute);
+app.use("/api/v1/user", userRoute);
+app.use(
+  "/api/v1/product",
+  (req, res, next) => {
+    req.redisClient = redisClient;
+    next();
+  },
+  productRoute
+);
+app.use(
+  "/api/v1/review",
+  (req, res, next) => {
+    req.redisClient = redisClient;
+    next();
+  },
+  reviewRoute
+);
+app.use("/api/v1/userRole", userRoleRoute);
+app.use("/api/v1/order", orderRoute);
+app.use("/api/v1/shoppingCart", shoppingCartRoute);
+app.use(
+  "/api/v1/category",
+  (req, res, next) => {
+    req.redisClient = redisClient;
+    next();
+  },
+  categoryRoute
+);
+app.use("/api/v1/userAddress", userAddressRoute);
+
 process.on("unhandledRejection", (reason, promise) => {
   logger.error("Unhandled Rejection at", promise, "reason:", reason);
 });
+

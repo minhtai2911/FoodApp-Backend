@@ -43,12 +43,17 @@ const login = asyncHandler(async (req, res, next) => {
   const user = await User.login(email, originalPassword);
   const role = await UserRole.findById(user.roleId);
 
+<<<<<<< HEAD
   if (!role) {
     res.status(404).json({ error: "Not found" });
   }
 
   if (!user.isActive && role.roleName === "Customer") {
     return res.status(400).json({ message: "Tài khoản chưa được xác thực!" });
+=======
+  if (!user.isActive && role.roleName === "Customer") {
+    return res.status(400).json({ data: user.email });
+>>>>>>> 3ee8b1b887592ec4e2aa6898e4a7f96e6c5b7efe
   }
 
   if (!user.isActive) {
@@ -77,9 +82,12 @@ const signup = asyncHandler(async (req, res, next) => {
   if (exists) return res.status(409).json({ message: "Email đã tồn tại." });
 
   const role = await UserRole.findOne({ roleName: "Customer" });
+<<<<<<< HEAD
   if (!role) {
     res.status(404).json({ error: "Not found" });
   }
+=======
+>>>>>>> 3ee8b1b887592ec4e2aa6898e4a7f96e6c5b7efe
   const roleId = role._id;
   const user = new User({ email, fullName, phone, roleId, password });
 
@@ -279,6 +287,25 @@ const resetPassword = asyncHandler(async (req, res, next) => {
   res.status(200).json({ message: "Đổi mật khẩu thành công!" });
 });
 
+<<<<<<< HEAD
+=======
+const loginGoogleSuccess = asyncHandler(async (req, res, next) => {
+  const user = await User.findOne({ email: req.body.email });
+
+  if (!user) return res.status(404).json({ error: "Not found" });
+
+  const check = await bcrypt.compare(user._id.toString(), req.body.token);
+
+  if (!check)
+    return res.status(403).json({
+      message: "Token đã quá hạn",
+    });
+
+  const { password, ...data } = user._doc;
+  res.status(200).json({ data });
+});
+
+>>>>>>> 3ee8b1b887592ec4e2aa6898e4a7f96e6c5b7efe
 export default {
   login: login,
   signup: signup,
@@ -292,4 +319,8 @@ export default {
   resetPassword: resetPassword,
   verifyAccount: verifyAccount,
   sendMailVerifyAccount: sendMailVerifyAccount,
+<<<<<<< HEAD
+=======
+  loginGoogleSuccess: loginGoogleSuccess,
+>>>>>>> 3ee8b1b887592ec4e2aa6898e4a7f96e6c5b7efe
 };
