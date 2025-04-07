@@ -31,7 +31,10 @@ const userSchema = new mongoose.Schema(
     },
     password: {
       type: String,
-      required: true,
+    },
+    googleId: {
+      type: String,
+      unique: true,
     },
     avatarPath: {
       type: String,
@@ -54,19 +57,27 @@ userSchema.pre("save", async function (next) {
 });
 
 userSchema.statics.login = async function (email, password) {
-  const user = await this.findOne({ email });
-  if (user) {
-    const auth = await bcrypt.compare(password, user.password);
-    if (auth) {
-      return user;
+  try {
+    const user = await this.findOne({ email });
+    if (!user) {
+      throw new Error(
+        "Thông tin đăng nhập không chính xác. Vui lòng kiểm tra lại tên đăng nhập và mật khẩu."
+      );
     }
+
+    const check = await bcrypt.compare(password, user.password);
+    if (!check) {
+      throw new Error(
+        "Thông tin đăng nhập không chính xác. Vui lòng kiểm tra lại tên đăng nhập và mật khẩu."
+      );
+    }
+
+    return user;
+  } catch (err) {
     throw new Error(
       "Thông tin đăng nhập không chính xác. Vui lòng kiểm tra lại tên đăng nhập và mật khẩu."
     );
   }
-  throw new Error(
-    "Thông tin đăng nhập không chính xác. Vui lòng kiểm tra lại tên đăng nhập và mật khẩu."
-  );
 };
 
 export default mongoose.model("User", userSchema);
