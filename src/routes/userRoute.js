@@ -1,7 +1,7 @@
 import { Router } from "express";
 import userController from "../controllers/userController.js";
 import authMiddleware from "../middlewares/authMiddleware.js";
-import { uploadAvatar } from "../middlewares/upload.js";
+import upload from "../middlewares/upload.js";
 
 const router = Router();
 
@@ -16,7 +16,7 @@ router.put(
 router.put(
   "/:id",
   authMiddleware.verifyToken,
-  uploadAvatar.single("avatarPath"),
+  upload.single("avatarPath"),
   userController.updateUserById
 );
 router.post("/", authMiddleware.verifyToken, authMiddleware.checkPermission(["Admin"]), userController.createUser);

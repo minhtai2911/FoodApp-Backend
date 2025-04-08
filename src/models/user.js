@@ -1,8 +1,6 @@
 import mongoose from "mongoose";
 import validator from "validator";
 import bcrypt from "bcrypt";
-import dotenv from "dotenv";
-dotenv.config();
 
 const userSchema = new mongoose.Schema(
   {
@@ -38,7 +36,11 @@ const userSchema = new mongoose.Schema(
     },
     avatarPath: {
       type: String,
-      default: `${process.env.URL_SERVER}/avatars/avatar.jpg`,
+      default: `https://res.cloudinary.com/dffy6tds8/image/upload/v1744127926/avatar_kn6ynb.jpg`,
+    },
+    publicId: {
+      type: String,
+      default: `avatar_kn6ynb`,
     },
     isActive: {
       type: Boolean,

@@ -94,63 +94,27 @@ const updateStatusUserById = asyncHandler(async (req, res, next) => {
     .json({ message: "Khôi phục người dùng thành công!", data: updateUser });
 });
 
-const updateUserById = async (req, res, next) => {
-  try {
-    const role = await UserRole.findById(req.user.roleId);
-    if (req.user.id !== req.params.id && role.roleName !== "Admin") {
-      if (req.file) {
-        const __filename = fileURLToPath(import.meta.url);
-        const __dirname = path.dirname(__filename);
-        fs.unlinkSync(path.join(__dirname, "../..", req.file.path));
-      }
-      return res.status(403).json({
-        message:
-          "Bạn không có quyền truy cập vào tài nguyên này. Vui lòng liên hệ với quản trị viên.",
-      });
+const updateUserById = asyncHandler(async (req, res, next) => {
+  const role = await UserRole.findById(req.user.roleId);
+  if (req.user.id !== req.params.id && role.roleName !== "Admin") {
+    return res.status(403).json({
+      message:
+        "Bạn không có quyền truy cập vào tài nguyên này. Vui lòng liên hệ với quản trị viên.",
+    });
+  }
+
+  const user = await User.findById(req.params.id);
+
+  if (!user) {
+    return res.status(404).json({ error: "Not found" });
+  }
+
+  if (req.file) {
+    if (user.publicId != "avatar_kn6ynb") {
+      await cloudinary.deleteImageFromCloudinary(user.publicId);
     }
 
-    const user = await User.findById(req.params.id);
-    if (!user) {
-      if (req.file) {
-        const __filename = fileURLToPath(import.meta.url);
-        const __dirname = path.dirname(__filename);
-        fs.unlinkSync(path.join(__dirname, "../..", req.file.path));
-      }
-      return res.status(404).json({ error: "Not found" });
-    }
-
-    if (req.file) {
-      if (user.avatarPath) {
-        const __filename = fileURLToPath(import.meta.url);
-        const __dirname = path.dirname(__filename);
-        const deleteStart = user.avatarPath.indexOf("/avatars");
-        const deleteFile = "/public" + user.avatarPath.slice(deleteStart);
-
-        if ("/public/avatars/avatar.jpg" != deleteFile)
-          fs.unlinkSync(path.join(__dirname, "..", deleteFile));
-      }
-      let filePath = req.file.path.replace(/\\/g, "/");
-      const start = filePath.indexOf("avatars");
-      filePath = filePath.slice(start);
-      const avatarPath = `${process.env.URL_SERVER}/${filePath}`;
-
-      const newUser = await User.findByIdAndUpdate(
-        req.params.id,
-        {
-          $set: {
-            fullName: req.body.fullName || user.fullName,
-            phone: req.body.phone || user.phone,
-            avatarPath: avatarPath,
-            roleId: req.body.roleId || user.roleId,
-          },
-        },
-        { new: true }
-      );
-      return res.status(200).json({
-        message: "Chỉnh sửa thông tin người dùng thành công!",
-        data: newUser,
-      });
-    }
+    const avatarPath = await cloudinary.uploadImageToCloudinary(req.file.path);
 
     const newUser = await User.findByIdAndUpdate(
       req.params.id,
@@ -158,26 +122,36 @@ const updateUserById = async (req, res, next) => {
         $set: {
           fullName: req.body.fullName || user.fullName,
           phone: req.body.phone || user.phone,
+          avatarPath: avatarPath.url,
+          publicId: avatarPath.public_id,
           roleId: req.body.roleId || user.roleId,
         },
       },
       { new: true }
     );
-
-    res.status(200).json({
-      message: "Chỉnh sửa thông tin người dùng thành công!",
+    return res.status(200).json({
+      message: messages.MSG23,
       data: newUser,
     });
-  } catch (err) {
-    const __filename = fileURLToPath(import.meta.url);
-    const __dirname = path.dirname(__filename);
-    fs.unlinkSync(path.join(__dirname, "../..", req.file.path));
-    res.status(500).json({
-      error: err.message,
-      message: "Đã xảy ra lỗi, vui lòng thử lại!",
-    });
   }
-};
+
+  const newUser = await User.findByIdAndUpdate(
+    req.params.id,
+    {
+      $set: {
+        fullName: req.body.fullName || user.fullName,
+        phone: req.body.phone || user.phone,
+        roleId: req.body.roleId || user.roleId,
+      },
+    },
+    { new: true }
+  );
+
+  res.status(200).json({
+    message: messages.MSG23,
+    data: newUser,
+  });
+});
 
 const createUser = asyncHandler(async (req, res, next) => {
   const { email, fullName, phone, password, roleName } = req.body;
@@ -185,7 +159,7 @@ const createUser = asyncHandler(async (req, res, next) => {
     throw new Error("Vui lòng điền đầy đủ thông tin bắt buộc!");
   }
   const exists = await User.findOne({ email: email });
-  if (exists) return res.status(400).json({ message: "Email đã tồn tại." });
+  if (exists && exists.password) return res.status(400).json({ message: "Email đã tồn tại." });
   const role = await UserRole.findOne({ roleName: roleName });
   if (!role) return res.status(400).json({ error: "Not found" });
   const roleId = role._id;

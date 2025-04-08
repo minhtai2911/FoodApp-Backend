@@ -1,7 +1,7 @@
 import {Router} from "express";
 import productController from "../controllers/productController.js";
 import authMiddleware from "../middlewares/authMiddleware.js";
-import { uploadProduct } from "../middlewares/upload.js";
+import upload from "../middlewares/upload.js";
 
 const router = Router();
 
@@ -14,11 +14,11 @@ router.post(
     "/images",
     authMiddleware.verifyToken,
     authMiddleware.checkPermission(["Admin"]),
-    uploadProduct.array("images"),
+    upload.array("images"),
     productController.createImages
   );
   router.delete(
-    "/images/:productId/:index",
+    "/images/:productId/:publicId",
     authMiddleware.verifyToken,
     authMiddleware.checkPermission(["Admin"]),
     productController.deleteImageById

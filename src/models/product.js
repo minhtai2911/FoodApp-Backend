@@ -35,7 +35,12 @@ const userSchema = new mongoose.Schema(
       type: Number,
       default: 0,
     },
-    images: [{ type: String, required: true }],
+    images: [
+      {
+        url: { type: String, required: true },
+        publicId: { type: String, required: true },
+      },
+    ],
     isActive: {
       type: Boolean,
       default: true,

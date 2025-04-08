@@ -74,7 +74,14 @@ const signup = asyncHandler(async (req, res, next) => {
   }
   const exists = await User.findOne({ email: email });
 
-  if (exists) return res.status(409).json({ message: "Email đã tồn tại." });
+  if (exists && exists.password)
+    return res.status(409).json({ message: "Email đã tồn tại." });
+
+  if (exists) {
+    exists.password = password;
+    exists.save();
+    return res.status(201).json({ message: "Đăng ký thành công" });
+  }
 
   const role = await UserRole.findOne({ roleName: "Customer" });
   if (!role) {
@@ -248,16 +255,6 @@ const checkOTPByEmail = asyncHandler(async (req, res, next) => {
   res.status(200).json({ data: { accessToken, refreshToken } });
 });
 
-const checkEmail = asyncHandler(async (req, res, next) => {
-  const user = await User.findOne({ email: req.body.email });
-
-  if (!user) {
-    return res.status(404).json({ message: "Email không tồn tại." });
-  }
-
-  res.status(200).json({ message: "Email đã tồn tại." });
-});
-
 const forgotPassword = asyncHandler(async (req, res, next) => {
   const user = await User.findById(req.user.id);
   user.password = req.body.newPassword;
@@ -287,7 +284,6 @@ export default {
   generateOTP: generateOTP,
   sendOTP: sendOTP,
   checkOTPByEmail: checkOTPByEmail,
-  checkEmail: checkEmail,
   forgotPassword: forgotPassword,
   resetPassword: resetPassword,
   verifyAccount: verifyAccount,

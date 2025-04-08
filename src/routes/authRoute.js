@@ -14,7 +14,6 @@ router.post("/refreshToken", authController.refreshToken);
 router.post("/generateOTP", authController.generateOTP);
 router.post("/sendOTP", authController.sendOTP);
 router.post("/checkOTPByEmail", authController.checkOTPByEmail);
-router.post("/checkEmail", authController.checkEmail);
 router.post("/forgotPassword", authMiddleware.verifyToken, authController.forgotPassword);
 router.post("/resetPassword", authMiddleware.verifyToken, authController.resetPassword);
 router.get("/verifyAccount/:id", authController.verifyAccount);
