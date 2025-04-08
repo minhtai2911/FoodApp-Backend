@@ -130,7 +130,7 @@ const createImages = asyncHandler(async (req, res, next) => {
   if (!product) return res.status(404).json({ error: "Not found" });
 
   for (let i = 0; i < req.files.length; i++) {
-    let image = await cloudinary.uploadImageToCloudinary(req.file[i].path);
+    let image = await cloudinary.uploadImageToCloudinary(req.files[i].path);
 
     product.images.push({
       url: image.url,
