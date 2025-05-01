@@ -1,6 +1,6 @@
 import mongoose from "mongoose";
 
-const userSchema = new mongoose.Schema(
+const reviewSchema = new mongoose.Schema(
   {
     userId: {
       type: mongoose.Schema.Types.ObjectId,
@@ -47,8 +47,17 @@ const userSchema = new mongoose.Schema(
         },
       },
     ],
+    isActive: {
+      type: Boolean,
+      default: true,
+    },
+    type: {
+      type: String,
+      required: true,
+      enum: ["Tiêu cực", "Tích cực", "Trung lập"],
+    },
   },
   { timestamps: true }
 );
 
-export default mongoose.model("Review", userSchema);
+export default mongoose.model("Review", reviewSchema);

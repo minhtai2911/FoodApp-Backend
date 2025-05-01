@@ -1,6 +1,6 @@
 import mongoose from "mongoose";
 
-const userSchema = new mongoose.Schema(
+const refreshTokenSchema = new mongoose.Schema(
   {
     token: {
       type: String,
@@ -20,4 +20,6 @@ const userSchema = new mongoose.Schema(
   { timestamps: true }
 );
 
-export default mongoose.model("RefreshToken", userSchema);
+refreshTokenSchema.index({ expiresAt: 1 }, { expireAfterSeconds: 0 });
+
+export default mongoose.model("RefreshToken", refreshTokenSchema);

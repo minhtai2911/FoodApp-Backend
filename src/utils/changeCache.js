@@ -1,4 +1,4 @@
-export default async function invalidateCache(req, key, keys, input) {
+const invalidateCache = async (req, key, keys, input) => {
   const cachedKey = `${key}:${input}`;
   await req.redisClient.del(cachedKey);
 
@@ -6,4 +6,6 @@ export default async function invalidateCache(req, key, keys, input) {
   if (cachedKeys.length > 0) {
     await req.redisClient.del(cachedKeys);
   }
-}
+};
+
+export default invalidateCache;

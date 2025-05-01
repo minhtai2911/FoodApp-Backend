@@ -1,6 +1,6 @@
 import mongoose from "mongoose";
 
-const userSchema = new mongoose.Schema(
+const orderSchema = new mongoose.Schema(
   {
     userId: {
       type: mongoose.Schema.Types.ObjectId,
@@ -14,6 +14,11 @@ const userSchema = new mongoose.Schema(
           required: true,
           ref: "Product",
         },
+        productVariantId: {
+          type: mongoose.Schema.Types.ObjectId,
+          required: true,
+          ref: "ProductVariant",
+        },
         quantity: {
           type: Number,
           required: true,
@@ -21,7 +26,7 @@ const userSchema = new mongoose.Schema(
         price: {
           type: Number,
           required: true,
-        }
+        },
       },
     ],
     totalPrice: {
@@ -73,6 +78,10 @@ const userSchema = new mongoose.Schema(
           type: String,
           default: null,
         },
+        deliveryDate: {
+          type: Date,
+          default: Date.now(),
+        },
       },
     ],
     expectedDeliveryDate: {
@@ -83,4 +92,4 @@ const userSchema = new mongoose.Schema(
   { timestamps: true }
 );
 
-export default mongoose.model("Order", userSchema);
+export default mongoose.model("Order", orderSchema);

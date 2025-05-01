@@ -32,5 +32,6 @@ router.put(
   authMiddleware.checkPermission(["Employee"]),
   orderController.updatePaymentStatusById
 );
+router.post("/sendDeliveryInfo", orderController.sendMailDeliveryInfo);
 
 export default router;

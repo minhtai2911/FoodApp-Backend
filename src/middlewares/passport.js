@@ -3,7 +3,6 @@ import { Strategy as GoogleStrategy } from "passport-google-oauth20";
 import dotenv from "dotenv";
 import User from "../models/user.js";
 import UserRole from "../models/userRole.js";
-import generateTokens from "../utils/generateToken.js";
 
 dotenv.config();
 
@@ -42,9 +41,7 @@ passport.use(
           { new: true }
         );
 
-        const { accessToken, refreshToken } = await generateTokens(user);
-
-        done(null, { accessToken, refreshToken });
+        done(null, user);
       } catch (err) {
         console.log(err.message);
         done(null, false);

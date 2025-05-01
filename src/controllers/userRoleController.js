@@ -12,6 +12,11 @@ const getAllUserRoles = asyncHandler(async (req, res, next) => {
   const totalCount = await UserRole.countDocuments(query);
   const userRoles = await UserRole.find(query).skip(skip).limit(limit).exec();
 
+  logger.info("Lấy danh sách vai trò người dùng thành công!", {
+    ...query,
+    page,
+    limit,
+  });
   res.status(200).json({
     meta: {
       totalCount: totalCount,
@@ -25,8 +30,12 @@ const getAllUserRoles = asyncHandler(async (req, res, next) => {
 const getUserRoleById = asyncHandler(async (req, res, next) => {
   const userRole = await UserRole.findById(req.params.id);
 
-  if (!userRole) return res.status(404).json({ error: "Not found" });
+  if (!userRole) {
+    logger.warn("Vai trò người dùng không tồn tại");
+    return res.status(404).json({ error: "Not found" });
+  }
 
+  logger.info("Lấy vai trò người dùng thành công");
   res.status(200).json({ data: userRole });
 });
 

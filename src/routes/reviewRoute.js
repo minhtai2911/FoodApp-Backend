@@ -26,13 +26,13 @@ router.delete(
 router.put(
   "/hide/:id",
   authMiddleware.verifyToken,
-  authMiddleware.checkPermission(["Admin"]),
+  authMiddleware.checkPermission(["Employee"]),
   reviewController.hideReviewById
 );
 router.put(
   "/unhide/:id",
   authMiddleware.verifyToken,
-  authMiddleware.checkPermission(["Admin"]),
+  authMiddleware.checkPermission(["Employee"]),
   reviewController.unhideReviewById
 );
 

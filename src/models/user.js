@@ -1,6 +1,7 @@
 import mongoose from "mongoose";
 import validator from "validator";
 import bcrypt from "bcrypt";
+import { messages } from "../config/messageHelper.js";
 
 const userSchema = new mongoose.Schema(
   {
@@ -61,23 +62,17 @@ userSchema.statics.login = async function (email, password) {
   try {
     const user = await this.findOne({ email });
     if (!user) {
-      throw new Error(
-        "Thông tin đăng nhập không chính xác. Vui lòng kiểm tra lại tên đăng nhập và mật khẩu."
-      );
+      throw new Error(messages.MSG2);
     }
 
     const check = await bcrypt.compare(password, user.password);
     if (!check) {
-      throw new Error(
-        "Thông tin đăng nhập không chính xác. Vui lòng kiểm tra lại tên đăng nhập và mật khẩu."
-      );
+      throw new Error(messages.MSG2);
     }
-
+    
     return user;
   } catch (err) {
-    throw new Error(
-      "Thông tin đăng nhập không chính xác. Vui lòng kiểm tra lại tên đăng nhập và mật khẩu."
-    );
+    throw new Error(messages.MSG2);
   }
 };
 

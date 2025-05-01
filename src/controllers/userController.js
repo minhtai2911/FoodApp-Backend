@@ -1,9 +1,9 @@
 import User from "../models/user.js";
-import path from "path";
-import fs from "fs";
-import { fileURLToPath } from "url";
 import UserRole from "../models/userRole.js";
+import { messages } from "../config/messageHelper.js";
 import asyncHandler from "../middlewares/asyncHandler.js";
+import cloudinary from "../utils/cloudinary.js";
+import logger from "../utils/logger.js";
 
 const getAllUsers = asyncHandler(async (req, res, next) => {
   const page = parseInt(req.query.page) || 1;
@@ -53,6 +53,7 @@ const getAllUsers = asyncHandler(async (req, res, next) => {
 
   const user = await User.aggregate(pipeline);
 
+  logger.info("Lấy danh sách người dùng thành công", { ...query, page, limit });
   return res.status(200).json({
     meta: {
       totalCount: totalCount[0]?.count || 0,
@@ -66,14 +67,21 @@ const getAllUsers = asyncHandler(async (req, res, next) => {
 const getUserById = asyncHandler(async (req, res, next) => {
   const user = await User.findById(req.params.id).populate("roleId");
 
-  if (!user) return res.status(404).json({ error: "Not found" });
+  if (!user) {
+    logger.warn("Người dùng không tồn tại");
+    return res.status(404).json({ error: "Not found" });
+  }
 
+  logger.info("Lấy người dùng thành công!");
   res.status(200).json({ data: user });
 });
 
 const updateStatusUserById = asyncHandler(async (req, res, next) => {
   const user = await User.findById(req.params.id);
-  if (!user) return res.status(404).json({ error: "Not found" });
+  if (!user) {
+    logger.warn("Người dùng không tồn tại");
+    return res.status(404).json({ error: "Not found" });
+  }
 
   const updateUser = await User.findByIdAndUpdate(
     req.params.id,
@@ -84,19 +92,21 @@ const updateStatusUserById = asyncHandler(async (req, res, next) => {
     },
     { new: true }
   );
-  if (!updateUser.isActive)
-    return res
-      .status(200)
-      .json({ message: "Lưu trữ người dùng thành công!", data: updateUser });
 
-  res
-    .status(200)
-    .json({ message: "Khôi phục người dùng thành công!", data: updateUser });
+  if (!updateUser.isActive) {
+    logger.info(messages.MSG27);
+    return res.status(200).json({ message: messages.MSG27, data: updateUser });
+  }
+
+  logger.info(messages.MSG58);
+  res.status(200).json({ message: messages.MSG58, data: updateUser });
 });
 
 const updateUserById = asyncHandler(async (req, res, next) => {
-  const role = await UserRole.findById(req.user.roleId);
-  if (req.user.id !== req.params.id && role.roleName !== "Admin") {
+  if (req.user.id !== req.params.id && req.user.roleName !== "Admin") {
+    logger.warn(
+      "Bạn không có quyền truy cập vào tài nguyên này. Vui lòng liên hệ với quản trị viên."
+    );
     return res.status(403).json({
       message:
         "Bạn không có quyền truy cập vào tài nguyên này. Vui lòng liên hệ với quản trị viên.",
@@ -106,6 +116,7 @@ const updateUserById = asyncHandler(async (req, res, next) => {
   const user = await User.findById(req.params.id);
 
   if (!user) {
+    logger.warn("Người dùng không tồn tại");
     return res.status(404).json({ error: "Not found" });
   }
 
@@ -129,6 +140,8 @@ const updateUserById = asyncHandler(async (req, res, next) => {
       },
       { new: true }
     );
+
+    logger.info(messages.MSG23);
     return res.status(200).json({
       message: messages.MSG23,
       data: newUser,
@@ -147,6 +160,7 @@ const updateUserById = asyncHandler(async (req, res, next) => {
     { new: true }
   );
 
+  logger.info(messages.MSG23);
   res.status(200).json({
     message: messages.MSG23,
     data: newUser,
@@ -155,19 +169,30 @@ const updateUserById = asyncHandler(async (req, res, next) => {
 
 const createUser = asyncHandler(async (req, res, next) => {
   const { email, fullName, phone, password, roleName } = req.body;
+
   if (!email || !fullName || !phone || !password || !roleName) {
-    throw new Error("Vui lòng điền đầy đủ thông tin bắt buộc!");
+    logger.warn(messages.MSG1);
+    throw new Error(messages.MSG1);
   }
+
   const exists = await User.findOne({ email: email });
-  if (exists && exists.password) return res.status(400).json({ message: "Email đã tồn tại." });
+
+  if (exists.password) {
+    logger.warn(messages.MSG51);
+    return res.status(400).json({ message: messages.MSG51 });
+  }
+
   const role = await UserRole.findOne({ roleName: roleName });
-  if (!role) return res.status(400).json({ error: "Not found" });
+  if (!role) {
+    logger.warn("Vai trò người dùng không tồn tại");
+    return res.status(400).json({ error: "Not found" });
+  }
+
   const roleId = role._id;
   const newUser = new User({ email, fullName, phone, roleId, password });
   await newUser.save();
-  res
-    .status(201)
-    .json({ message: "Thêm người dùng thành công!", data: newUser });
+  logger.info(messages.MSG22);
+  res.status(201).json({ message: messages.MSG22, data: newUser });
 });
 
 export default {

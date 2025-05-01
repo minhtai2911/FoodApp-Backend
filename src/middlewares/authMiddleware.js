@@ -29,13 +29,7 @@ const checkPermission = (permission) => {
       });
     }
 
-    const role = await UserRole.findById(req.user.roleId);
-
-    if (!role) {
-      return res.status(404).json({ error: "Vai trò không tồn tại." });
-    }
-
-    if (!permission.includes(role.roleName)) {
+    if (!permission.includes(req.user.roleName)) {
       return res.status(403).json({
         message:
           "Bạn không có quyền truy cập vào tài nguyên này. Vui lòng liên hệ với quản trị viên.",

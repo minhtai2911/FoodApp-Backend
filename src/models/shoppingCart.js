@@ -1,15 +1,15 @@
 import mongoose from "mongoose";
 
-const userSchema = new mongoose.Schema(
+const shoppingCartSchema = new mongoose.Schema(
   {
     userId: {
       type: mongoose.Schema.Types.ObjectId,
       required: true,
       ref: "User",
     },
-    productId: {
+    productVariantId: {
       type: mongoose.Schema.Types.ObjectId,
-      ref: "Product",
+      ref: "ProductVariant",
       required: true,
     },
     quantity: {
@@ -21,4 +21,4 @@ const userSchema = new mongoose.Schema(
   { timestamps: true }
 );
 
-export default mongoose.model("ShoppingCart", userSchema);
+export default mongoose.model("ShoppingCart", shoppingCartSchema);

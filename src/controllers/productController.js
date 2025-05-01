@@ -1,13 +1,12 @@
 import Product from "../models/product.js";
-import { fileURLToPath } from "url";
-import path from "path";
-import fs from "fs";
+import { messages } from "../config/messageHelper.js";
 import asyncHandler from "../middlewares/asyncHandler.js";
 import invalidateCache from "../utils/changeCache.js";
+import cloudinary from "../utils/cloudinary.js";
+import logger from "../utils/logger.js";
 
 const getAllProducts = asyncHandler(async (req, res, next) => {
   const query = {};
-
   const page = parseInt(req.query.page) || 1;
   const limit = parseInt(req.query.limit) || 10;
   const skip = (page - 1) * limit;
@@ -30,6 +29,13 @@ const getAllProducts = asyncHandler(async (req, res, next) => {
   const cachedProducts = await req.redisClient.get(cacheKey);
 
   if (cachedProducts) {
+    logger.info("Lấy danh sách sản phẩm thành công!", {
+      ...query,
+      sortBy,
+      sortOrder,
+      page,
+      limit,
+    });
     return res.status(200).json(JSON.parse(cachedProducts));
   }
 
@@ -53,6 +59,13 @@ const getAllProducts = asyncHandler(async (req, res, next) => {
 
   await req.redisClient.setex(cacheKey, 300, JSON.stringify(result));
 
+  logger.info("Lấy danh sách sản phẩm thành công!", {
+    ...query,
+    sortBy,
+    sortOrder,
+    page,
+    limit,
+  });
   return res.status(200).json(result);
 });
 
@@ -60,7 +73,8 @@ const createProduct = asyncHandler(async (req, res, next) => {
   const { name, description, categoryId, price, discountPrice } = req.body;
 
   if (!name || !description || !categoryId || !price) {
-    throw new Error("Vui lòng điền đầy đủ thông tin bắt buộc!");
+    logger.warn(messages.MSG1);
+    throw new Error(messages.MSG1);
   }
 
   const newProduct = new Product({
@@ -71,31 +85,52 @@ const createProduct = asyncHandler(async (req, res, next) => {
     discountPrice,
   });
 
-  await newProduct.save();
   invalidateCache(req, "product", "products", newProduct._id.toString());
-  res.status(201).json({ message: "Thêm sản phẩm thành công!", data: newProduct });
+  logger.info(messages.MSG32);
+  await newProduct.save();
+  res.status(201).json({ message: messages.MSG32, data: newProduct });
 });
 
 const getProductById = asyncHandler(async (req, res, next) => {
-  const cacheKey = `order:${req.params.id}`;
-  const cachedProduct = await req.redisClient.get(cacheKey);
+  const cacheKey = `product:${req.params.id}`;
+  const cachedProduct = await req.redisClient.hgetall(cacheKey);
 
-  if (cachedProduct) {
-    return res.status(200).json(JSON.parse(cachedProduct));
+  if (Object.keys(cachedProduct).length > 1) {
+    logger.info("Lấy sản phẩm thành công!");
+    const parsedData = {};
+
+    for (const key in cachedProduct) {
+      try {
+        parsedData[key] = JSON.parse(cachedProduct[key]);
+      } catch (err) {
+        parsedData[key] = cachedProduct[key];
+      }
+    }
+    return res.status(200).json({ data: parsedData });
   }
 
-  const product = await Product.findById(req.params.id);
+  const product = await Product.findById(req.params.id).lean();
 
-  if (!product) return res.status(404).json({ error: "Not found" });
+  if (!product) {
+    logger.warn("Sản phẩm không tồn tại");
+    return res.status(404).json({ error: "Not found" });
+  }
 
-  await req.redisClient.setex(cacheKey, 3600, JSON.stringify(product));
+  for (const key in product) {
+    await req.redisClient.hset(cacheKey, key, JSON.stringify(product[key]));
+  }
+
+  logger.info("Lấy sản phẩm thành công!");
   res.status(200).json({ data: product });
 });
 
 const updateProductById = asyncHandler(async (req, res, next) => {
   const updateProduct = await Product.findById(req.params.id);
 
-  if (!updateProduct) return res.status(404).json({ error: "Not found" });
+  if (!updateProduct) {
+    logger.warn("Sản phẩm không tồn tại");
+    return res.status(404).json({ error: "Not found" });
+  }
 
   const { name, description, categoryId, price, discountPrice } = req.body;
 
@@ -105,29 +140,41 @@ const updateProductById = asyncHandler(async (req, res, next) => {
   updateProduct.price = price || updateProduct.price;
   updateProduct.discountPrice = discountPrice || updateProduct.discountPrice;
 
-  await updateProduct.save();
   invalidateCache(req, "product", "products", updateProduct._id.toString());
-  res.status(200).json({ message: "Chỉnh sửa sản phẩm thành công!", data: updateProduct });
+  logger.info(messages.MSG33);
+  await updateProduct.save();
+  res.status(200).json({ message: messages.MSG33, data: updateProduct });
 });
 
 const updateStatusProductById = asyncHandler(async (req, res, next) => {
   const product = await Product.findById(req.params.id);
 
-  if (!product) return res.status(404).json({ error: "Not found" });
+  if (!product) {
+    logger.warn("Sản phẩm không tồn tại");
+    return res.status(404).json({ error: "Not found" });
+  }
 
   product.isActive = !product.isActive;
 
-  await product.save();
   invalidateCache(req, "product", "products", product._id.toString());
-  if (product.isActive) res.status(200).json({ message: "Khôi phục sản phẩm thành công!" });
-  else res.status(200).json({ message: "Lưu trữ sản phẩm thành công!" });
+  await product.save();
+  if (product.isActive) {
+    logger.info(messages.MSG29);
+    res.status(200).json({ message: messages.MSG29 });
+  } else {
+    logger.info(messages.MSG35);
+    res.status(200).json({ message: messages.MSG35 });
+  }
 });
 
 const createImages = asyncHandler(async (req, res, next) => {
   const productId = req.body.productId;
 
   const product = await Product.findById(productId);
-  if (!product) return res.status(404).json({ error: "Not found" });
+  if (!product) {
+    logger.warn("Sản phẩm không tồn tại");
+    return res.status(404).json({ error: "Not found" });
+  }
 
   for (let i = 0; i < req.files.length; i++) {
     let image = await cloudinary.uploadImageToCloudinary(req.files[i].path);
@@ -137,8 +184,9 @@ const createImages = asyncHandler(async (req, res, next) => {
       publicId: image.public_id,
     });
   }
-  await product.save();
   invalidateCache(req, "product", "products", product._id.toString());
+  logger.info("Tạo sản phẩm thành công!");
+  await product.save();
   res.status(201).json({ data: product });
 });
 
@@ -147,13 +195,19 @@ const deleteImageById = asyncHandler(async (req, res, next) => {
   const publicId = req.params.publicId;
 
   const product = await Product.findById(productId);
-  if (!product) return res.status(404).json({ error: "Not found" });
+  if (!product) {
+    logger.warn("Sản phẩm không tồn tại");
+    return res.status(404).json({ error: "Not found" });
+  }
 
   await cloudinary.deleteImageFromCloudinary(publicId);
-  
-  product.images = product.images.filter(image => image.publicId !== publicId);
-  await product.save();
+
+  product.images = product.images.filter(
+    (image) => image.publicId !== publicId
+  );
   invalidateCache(req, "product", "products", product._id.toString());
+  logger.info("Xóa ảnh của sản phẩm thành công!");
+  await product.save();
   res.status(200).json({ data: product });
 });
 

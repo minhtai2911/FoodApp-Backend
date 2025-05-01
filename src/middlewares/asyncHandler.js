@@ -1,11 +1,12 @@
+import { messages } from "../config/messageHelper.js";
 import logger from "../utils/logger.js";
 
 const asyncHandler = (fn) => (req, res, next) => {
   Promise.resolve(fn(req, res, next)).catch((err) => {
-    logger.error(err.message);
+    logger.error(messages.MSG5, err);
     return res.status(500).json({
       error: err.message,
-      message: "Đã xảy ra lỗi, vui lòng thử lại!",
+      message: messages.MSG5,
     });
   });
 };

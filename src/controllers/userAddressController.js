@@ -1,11 +1,15 @@
 import UserAddress from "../models/userAddress.js";
+import { messages } from "../config/messageHelper.js";
 import asyncHandler from "../middlewares/asyncHandler.js";
+import logger from "../utils/logger.js";
+import user from "../models/user.js";
 
 const createUserAddress = asyncHandler(async (req, res, next) => {
   const { userId, city, district, commune, street, phone } = req.body;
 
   if (!city || !district || !commune || !street || !phone) {
-    throw new Error("Vui lòng điền đầy đủ thông tin bắt buộc!");
+    logger.warn(messages.MSG1);
+    throw new Error(messages.MSG1);
   }
 
   const newUserAddress = new UserAddress({
@@ -18,6 +22,7 @@ const createUserAddress = asyncHandler(async (req, res, next) => {
   });
 
   newUserAddress.save();
+  logger.info("Tạo địa chỉ giao hàng thành công!");
   return res.status(201).json({ data: newUserAddress });
 });
 
@@ -33,14 +38,19 @@ const updateUserAddressById = asyncHandler(async (req, res, next) => {
   updateUserAddress.phone = phone || updateUserAddress.phone;
 
   await updateUserAddress.save();
+  logger.info("Cập nhật địa chỉ giao hàng thành công!");
   return res.status(200).json({ data: updateUserAddress });
 });
 
 const getUserAddressById = asyncHandler(async (req, res, next) => {
   const userAddress = await UserAddress.findById(req.params.id);
 
-  if (!userAddress) return res.status(404).json({ error: "Not found" });
+  if (!userAddress) {
+    logger.warn("Địa chỉ giao hàng không tồn tại");
+    return res.status(404).json({ error: "Not found" });
+  }
 
+  logger.info("Lấy địa chỉ giao hàng thành công!");
   res.status(200).json({ data: userAddress });
 });
 
