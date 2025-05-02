@@ -164,7 +164,7 @@ const deliveryInfoComponent = async (order) => {
             <div style="display: inline-block; vertical-align: top; width: calc(100% - 5rem);">
               <p style="font-weight: 500;">${product.name}</p>
               <p style="font-weight: 300;">
-                Màu sắc: ${productVariant.color} | Kích cỡ: ${productVariant.size} | Số lượng: ${item.quantity}
+                Kích cỡ: ${productVariant.size} | Số lượng: ${item.quantity}
               </p>
             </div>
           </div>
