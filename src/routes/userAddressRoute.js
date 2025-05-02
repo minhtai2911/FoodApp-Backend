@@ -5,7 +5,7 @@ import authMiddleware from "../middlewares/authMiddleware.js";
 const router = Router();
 
 router.post("/", userAddressController.createUserAddress);
-router.put("/" , authMiddleware.verifyToken, userAddressController.updateUserAddressById);
-router.get("/", authMiddleware.verifyToken, userAddressController.getUserAddressById);
+router.put("/:id" , authMiddleware.verifyToken, userAddressController.updateUserAddressById);
+router.get("/:id", authMiddleware.verifyToken, userAddressController.getUserAddressById);
 
 export default router;
