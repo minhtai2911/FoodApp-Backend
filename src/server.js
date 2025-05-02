@@ -20,6 +20,11 @@ import userRoleRoute from "./routes/userRoleRoute.js";
 import orderRoute from "./routes/orderRoute.js";
 import shoppingCartRoute from "./routes/shoppingCartRoute.js";
 import categoryRoute from "./routes/categoryRoute.js";
+import productVariantRoute from "./routes/productVariantRoute.js";
+import chatbotRoute from "./routes/chatbotRoute.js";
+import statisticRoute from "./routes/statisticRoute.js";
+import recommendationRoute from "./routes/recommendationRoute.js";
+import productViewRoute from "./routes/productViewRoute.js";
 import userAddressRoute from "./routes/userAddressRoute.js";
 
 const app = express();
@@ -28,11 +33,6 @@ const redisClient = new Redis(process.env.REDIS_URL);
 app.use(express.json());
 app.use(bodyParser.json());
 app.use(cookieParser());
-app.use(express.static("src/public"));
-
-app.use(passport.initialize());
-
-app.use(helmet());
 app.use(
   cors({
     origin: "http://localhost:3000",
@@ -41,6 +41,8 @@ app.use(
     allowedHeaders: ["Content-Type", "Authorization"],
   })
 );
+app.use(helmet());
+app.use(passport.initialize());
 
 dotenv.config();
 const PORT = process.env.PORT || 8000;
@@ -95,7 +97,14 @@ const sensitiveEndpointsLimiter = rateLimit({
 });
 
 app.use("/api/v1/auth/signup", sensitiveEndpointsLimiter);
-app.use("/api/v1/auth", authRoute);
+app.use(
+  "/api/v1/auth",
+  (req, res, next) => {
+    req.redisClient = redisClient;
+    next();
+  },
+  authRoute
+);
 app.use("/api/v1/user", userRoute);
 app.use(
   "/api/v1/product",
@@ -114,7 +123,14 @@ app.use(
   reviewRoute
 );
 app.use("/api/v1/userRole", userRoleRoute);
-app.use("/api/v1/order", orderRoute);
+app.use(
+  "/api/v1/order",
+  (req, res, next) => {
+    req.redisClient = redisClient;
+    next();
+  },
+  orderRoute
+);
 app.use("/api/v1/shoppingCart", shoppingCartRoute);
 app.use(
   "/api/v1/category",
@@ -124,9 +140,20 @@ app.use(
   },
   categoryRoute
 );
+app.use(
+  "/api/v1/productVariant",
+  (req, res, next) => {
+    req.redisClient = redisClient;
+    next();
+  },
+  productVariantRoute
+);
+app.use("/api/v1/chatbot", chatbotRoute);
+app.use("/api/v1/statistic", statisticRoute);
+app.use("/api/v1/recommendation", recommendationRoute);
+app.use("/api/v1/productView", productViewRoute);
 app.use("/api/v1/userAddress", userAddressRoute);
 
 process.on("unhandledRejection", (reason, promise) => {
   logger.error("Unhandled Rejection at", promise, "reason:", reason);
 });
-
