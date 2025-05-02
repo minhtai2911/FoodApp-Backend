@@ -27,7 +27,8 @@ const createUserAddress = asyncHandler(async (req, res, next) => {
 
 const updateUserAddressById = asyncHandler(async (req, res, next) => {
   const updateUserAddress = await UserAddress.findById(req.params.id);
-  const { userId, city, district, commune, street, phone } = req.body;
+  const { city, district, commune, street, phone } = req.body;
+  const userId = req.user.id;
 
   updateUserAddress.userId = userId || updateUserAddress.userId;
   updateUserAddress.city = city || updateUserAddress.city;
