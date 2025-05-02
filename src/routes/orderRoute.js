@@ -23,7 +23,7 @@ router.post("/checkStatusTransaction", orderController.checkStatusTransaction);
 router.put(
   "/deliveryInfo/:id",
   authMiddleware.verifyToken,
-  authMiddleware.checkPermission(["Employee"]),
+  authMiddleware.checkPermission(["Employee", "Customer"]),
   orderController.updateDeliveryInfoById
 );
 router.put(
