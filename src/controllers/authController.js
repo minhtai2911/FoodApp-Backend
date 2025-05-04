@@ -79,13 +79,18 @@ const signup = asyncHandler(async (req, res, next) => {
   }
   const exists = await User.findOne({ email: email });
 
-  if (exists && exists.password) {
+  if (exists && !exists.isGuest) {
     logger.warn(messages.MSG51);
     return res.status(409).json({ message: messages.MSG51 });
   }
 
-  if (exists) {
+  if (exists.isGuest) {
     exists.password = password;
+    exists.email = email;
+    exists.fullName = fullName;
+    exists.phone = phone;
+    exists.isGuest = false;
+    exists.expiresAt = null;
     exists.save();
     logger.info(messages.MSG16);
     return res.status(201).json({ data: exists._id, message: messages.MSG16 });

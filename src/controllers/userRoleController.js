@@ -1,5 +1,6 @@
 import UserRole from "../models/userRole.js";
 import asyncHandler from "../middlewares/asyncHandler.js";
+import logger from "../utils/logger.js";
 
 const getAllUserRoles = asyncHandler(async (req, res, next) => {
   const query = {};

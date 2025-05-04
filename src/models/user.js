@@ -46,11 +46,22 @@ const userSchema = new mongoose.Schema(
       type: Boolean,
       default: false,
     },
+    isGuest: {
+      type: Boolean,
+      default: false,
+    },
+    expiresAt: {
+      type: Date, 
+    },
   },
   { timestamps: true }
 );
 
 userSchema.pre("save", async function (next) {
+  if (this.guestId === true && !this.expiresAt) {
+    const expirationTime = 30; 
+    this.expiresAt = Date.now() + expirationTime * 24 * 60 * 60 * 1000;  
+  }
   if (this.password) {
     const salt = await bcrypt.genSalt();
     this.password = await bcrypt.hash(this.password, salt);

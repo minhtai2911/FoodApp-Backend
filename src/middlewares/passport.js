@@ -27,6 +27,7 @@ passport.use(
             fullName: profile.displayName,
             roleId: role.id,
             avatarPath: profile.photos[0].value,
+            isActive: true,
           });
           await user.save();
         }
