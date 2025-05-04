@@ -58,7 +58,7 @@ const userSchema = new mongoose.Schema(
 );
 
 userSchema.pre("save", async function (next) {
-  if (this.guestId === true && !this.expiresAt) {
+  if (this.isGuest === true && !this.expiresAt) {
     const expirationTime = 30; 
     this.expiresAt = Date.now() + expirationTime * 24 * 60 * 60 * 1000;  
   }
