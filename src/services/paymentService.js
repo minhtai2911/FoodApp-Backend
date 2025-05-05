@@ -4,6 +4,7 @@ import { messages } from "../config/messageHelper.js";
 import crypto from "crypto";
 import moment from "moment";
 
+//Strategy pattern
 export class MoMoStrategy {
   async checkout(orderId, amount) {
     try {
