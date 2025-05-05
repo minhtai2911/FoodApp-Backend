@@ -361,7 +361,7 @@ const createGuestAccount = asyncHandler(async (req, res, next) => {
     user._id,
     {
       $set: {
-        googleId: uuidv4(),
+        isGuest: true,
       },
     },
     { new: true }
