@@ -144,10 +144,10 @@ const chatbot = asyncHandler(async (req, res, next) => {
 
   if (result.fulfillmentText.substring(0, 7) === "orderId") {
     const orderId = result.fulfillmentText.substring(10);
-    const orderTracking = await Order.findById(
-      { _id: orderId },
-      { deliveryInfo, orderItems }
-    );
+    const orderTracking = await Order.findById(orderId, {
+      deliveryInfo: 1,
+      orderItems: 1,
+    });
 
     if (!orderTracking)
       return res

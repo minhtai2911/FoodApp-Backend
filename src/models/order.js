@@ -69,7 +69,7 @@ const orderSchema = new mongoose.Schema(
             "Đang xử lý",
             "Đã giao",
             "Đang giao",
-            "Đã hủy bởi bạn",
+            "Đã hủy bởi người mua",
             "Đã hủy bởi người bán",
             "Đã trả hàng",
             "Đã nhận đơn",
