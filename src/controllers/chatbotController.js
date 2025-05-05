@@ -46,11 +46,11 @@ const chatbot = asyncHandler(async (req, res, next) => {
     logger.info("Chatbot xử lí phản hồi thành công!");
     return res.status(200).json({
       message:
-        "Cảm ơn bạn đã ghé thăm FashionSpace. Dưới đây là một số sản phẩm bán chạy nhất của chúng mình hiện nay:",
+        "Cảm ơn bạn đã ghé thăm FoodyRush. Dưới đây là một số sản phẩm bán chạy nhất của chúng mình hiện nay:",
       data: product,
       type: "Product",
       messageEnd:
-        "Nếu bạn cần thêm thông tin chi tiết về từng sản phẩm hoặc muốn biết thêm về các mẫu khác, hãy cho mình biết nhé! FashionSpace luôn sẵn sàng hỗ trợ bạn!",
+        "Nếu bạn cần thêm thông tin chi tiết về từng sản phẩm hoặc muốn biết thêm về các sản phẩm khác, hãy cho mình biết nhé! FoodyRush luôn sẵn sàng hỗ trợ bạn!",
     });
   }
 
@@ -60,11 +60,11 @@ const chatbot = asyncHandler(async (req, res, next) => {
     logger.info("Chatbot xử lí phản hồi thành công!");
     return res.status(200).json({
       message:
-        "Cảm ơn bạn đã quan tâm đến các sản phẩm mới tại FashionSpace. Dưới đây là một số sản phẩm mới nhất mà chúng mình vừa ra mắt:",
+        "Cảm ơn bạn đã quan tâm đến các sản phẩm mới tại FoodyRush. Dưới đây là một số sản phẩm mới nhất mà chúng mình vừa ra mắt:",
       data: product,
       type: "Product",
       messageEnd:
-        "Nếu bạn cần thêm thông tin chi tiết về từng sản phẩm hoặc muốn biết thêm về các mẫu khác, hãy cho mình biết nhé! FashionSpace luôn sẵn sàng hỗ trợ bạn!",
+        "Nếu bạn cần thêm thông tin chi tiết về từng sản phẩm hoặc muốn biết thêm về các sản phẩm khác, hãy cho mình biết nhé! FoodyRush luôn sẵn sàng hỗ trợ bạn!",
     });
   }
 
@@ -73,73 +73,38 @@ const chatbot = asyncHandler(async (req, res, next) => {
       10,
       result.fulfillmentText.indexOf(";")
     );
-    const gender = result.fulfillmentText.substring(
-      result.fulfillmentText.indexOf("Gender") + 8
-    );
 
-    if (gender === "null") {
-      const categories = await Category.find({ name: categoryName });
+    const categories = await Category.find({ name: categoryName });
 
-      if (categories.length == 0) {
-        logger.info("Chatbot xử lí phản hồi thành công!");
-        return res.status(200).json({
-          message:
-            "Cảm ơn bạn đã quan tâm đến sản phẩm của chúng mình. Hiện tại, sản phẩm mà bạn đang tìm kiếm không có sẵn trong kho. Chúng mình rất tiếc vì sự bất tiện này.",
-          data: null,
-          messageEnd: null,
-        });
-      }
-
-      let products = [];
-
-      for (let category of categories) {
-        const product = await Product.find({ categoryId: category._id })
-          .sort({
-            soldQuantity: -1,
-          })
-          .limit(10);
-        products.push(...product);
-      }
-
+    if (categories.length == 0) {
       logger.info("Chatbot xử lí phản hồi thành công!");
       return res.status(200).json({
-        message: `Dưới đây là một số mẫu ${categoryName} đang có sẵn tại FashionSpace, phù hợp với nhiều phong cách và nhu cầu khác nhau:`,
-        data: products,
-        type: "Product",
-        messageEnd:
-          "Nếu bạn cần thêm thông tin chi tiết về từng sản phẩm hoặc muốn biết thêm về các mẫu khác, hãy cho mình biết nhé! FashionSpace luôn sẵn sàng hỗ trợ bạn!",
+        message:
+          "Cảm ơn bạn đã quan tâm đến sản phẩm của chúng mình. Hiện tại, sản phẩm mà bạn đang tìm kiếm đã bán hết. Chúng mình rất tiếc vì sự bất tiện này.",
+        data: null,
+        messageEnd: null,
       });
-    } else {
-      const category = await Category.findOne({
-        name: categoryName,
-        gender: gender,
-      });
+    }
 
-      if (!category) {
-        logger.info("Chatbot xử lí phản hồi thành công!");
-        return res.status(200).json({
-          message:
-            "Cảm ơn bạn đã quan tâm đến sản phẩm của chúng mình. Hiện tại, sản phẩm mà bạn đang tìm kiếm không có sẵn trong kho. Chúng mình rất tiếc vì sự bất tiện này.",
-          data: null,
-          messageEnd: null,
-        });
-      }
+    let products = [];
 
+    for (let category of categories) {
       const product = await Product.find({ categoryId: category._id })
         .sort({
           soldQuantity: -1,
         })
         .limit(10);
-
-      logger.info("Chatbot xử lí phản hồi thành công!");
-      return res.status(200).json({
-        message: `Dưới đây là một số mẫu ${categoryName} ${gender} đang có sẵn tại FashionSpace, phù hợp với nhiều phong cách và nhu cầu khác nhau:`,
-        data: product,
-        type: "Product",
-        messageEnd:
-          "Nếu bạn cần thêm thông tin chi tiết về từng sản phẩm hoặc muốn biết thêm về các mẫu khác, hãy cho mình biết nhé! FashionSpace luôn sẵn sàng hỗ trợ bạn!",
-      });
+      products.push(...product);
     }
+
+    logger.info("Chatbot xử lí phản hồi thành công!");
+    return res.status(200).json({
+      message: `Dưới đây là một số sản phẩm ${categoryName} đang có sẵn tại FoodyRush, phù hợp với tiêu chí của bạn:`,
+      data: products,
+      type: "Product",
+      messageEnd:
+        "Nếu bạn cần thêm thông tin chi tiết về từng sản phẩm hoặc muốn biết thêm về các sản phẩm khác, hãy cho mình biết nhé! FoodyRush luôn sẵn sàng hỗ trợ bạn!",
+    });
   }
 
   if (result.fulfillmentText.substring(0, 7) === "orderId") {
@@ -166,7 +131,7 @@ const chatbot = asyncHandler(async (req, res, next) => {
 });
 
 const entityCategoryId =
-  "projects/fashionspace-hagm/agent/entityTypes/e12b19d7-490b-4ac3-9443-2e31fe44d09f";
+  "projects/fastfood-egpp/agent/entityTypes/70907846-7225-4e48-abb3-8bbfb4d8d7dd";
 const entityTypesClient = new dialogflow.EntityTypesClient(CONFIGURATION);
 
 const updateEntityCategory = async (category, synonyms) => {
@@ -224,7 +189,7 @@ const deleteEntityCategory = async (category) => {
 };
 
 const entityOrderIdId =
-  "projects/fashionspace-hagm/agent/entityTypes/53b59b0c-8caa-4058-ad9c-20dd1782f6ab";
+  "projects/fastfood-egpp/agent/entityTypes/2b4a5a53-93ea-4dee-a7fc-478ec440f19a";
 
 const updateEntityOrderId = async (orderId) => {
   try {
