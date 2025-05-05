@@ -4,6 +4,7 @@ import authMiddleware from "../middlewares/authMiddleware.js";
 
 const router = Router();
 
+router.get("/callbackVnPay", orderController.callbackVnPay);
 router.get(
   "/",
   authMiddleware.verifyToken,
@@ -33,5 +34,8 @@ router.put(
   orderController.updatePaymentStatusById
 );
 router.post("/sendDeliveryInfo", orderController.sendMailDeliveryInfo);
+router.post("/checkoutWithVnPay", orderController.checkoutWithVnPay);
+router.post("/checkoutWithZaloPay", orderController.checkoutWithZaloPay);
+router.post("/callbackZaloPay", orderController.callbackZaloPay);
 
 export default router;

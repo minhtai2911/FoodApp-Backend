@@ -1,14 +1,12 @@
 import { Router } from "express";
 import authController from "../controllers/authController.js";
 import passport from "../middlewares/passport.js";
-import dotenv from "dotenv";
 import authMiddleware from "../middlewares/authMiddleware.js";
 import asyncHandler from "../middlewares/asyncHandler.js";
 import generateTokens from "../utils/generateToken.js";
 import bcrypt from "bcrypt";
 
 const router = Router();
-dotenv.config();
 
 router.post("/login", authController.login);
 router.post("/createGuestAccount", authController.createGuestAccount)

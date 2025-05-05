@@ -11,6 +11,17 @@ import Product from "../models/product.js";
 import ProductVariant from "../models/productVariant.js";
 import logger from "../utils/logger.js";
 import axios from "axios";
+import {
+  MoMoStrategy,
+  VnPayStrategy,
+  ZaloPayStrategy,
+  PaymentContext,
+} from "../services/paymentService.js";
+
+const moMoStrategy = new MoMoStrategy();
+const vnPayStrategy = new VnPayStrategy();
+const zaloPayStrategy = new ZaloPayStrategy();
+const paymentContext = new PaymentContext();
 
 const getAllOrders = asyncHandler(async (req, res, next) => {
   const query = {};
@@ -280,101 +291,14 @@ const updatePaymentStatusById = asyncHandler(async (req, res, next) => {
 });
 
 const checkoutWithMoMo = asyncHandler(async (req, res, next) => {
-  const accessKey = "F8BBA842ECF85";
-  const secretKey = "K951B6PE1waDMi640xX08PD3vg6EkVlz";
-  const orderInfo = "Checkout with MoMo";
-  const partnerCode = "MOMO";
-  const redirectUrl = `${process.env.URL_CLIENT}/orderCompleted`;
-  const ipnUrl = `${process.env.LINK_NGROK}/api/v1/paymentDetail/callback`;
-  const requestType = "payWithMethod";
-  const amount = req.body.amount;
-  const orderId = req.body.orderId;
-  const requestId = orderId;
-  const extraData = "";
-  const orderGroupId = "";
-  const autoCapture = true;
-  const lang = "vi";
-
-  let rawSignature =
-    "accessKey=" +
-    accessKey +
-    "&amount=" +
-    amount +
-    "&extraData=" +
-    extraData +
-    "&ipnUrl=" +
-    ipnUrl +
-    "&orderId=" +
-    orderId +
-    "&orderInfo=" +
-    orderInfo +
-    "&partnerCode=" +
-    partnerCode +
-    "&redirectUrl=" +
-    redirectUrl +
-    "&requestId=" +
-    requestId +
-    "&requestType=" +
-    requestType;
-
-  let signature = crypto
-    .createHmac("sha256", secretKey)
-    .update(rawSignature)
-    .digest("hex");
-
-  const requestBody = JSON.stringify({
-    partnerCode: partnerCode,
-    partnerName: "Test",
-    storeId: "MomoTestStore",
-    requestId: requestId,
-    amount: amount,
-    orderId: orderId,
-    orderInfo: orderInfo,
-    redirectUrl: redirectUrl,
-    ipnUrl: ipnUrl,
-    lang: lang,
-    requestType: requestType,
-    autoCapture: autoCapture,
-    extraData: extraData,
-    orderGroupId: orderGroupId,
-    signature: signature,
-  });
-
-  const options = {
-    method: "POST",
-    url: "https://test-payment.momo.vn/v2/gateway/api/create",
-    headers: {
-      "Content-Type": "application/json",
-      "Content-Length": Buffer.byteLength(requestBody),
-    },
-    data: requestBody,
-  };
-
-  const response = await axios(options);
-  logger.info("Bắt đầu quá trình thanh toán Momo");
-  res.status(200).json(response.data);
+  paymentContext.setStrategy(moMoStrategy);
+  const result = paymentContext.checkout(req.body.orderId, req.body.amount);
+  res.status(200).json(result);
 });
 
 const callbackMoMo = async (req, res, next) => {
-  try {
-    if (req.body.resultCode === 0) {
-      const order = await Order.findById({ _id: req.body.orderId });
-
-      if (!order) {
-        logger.warn("Đơn hàng không tồn tại");
-        throw new Error("Not found");
-      }
-
-      order.paymentStatus = paymentStatus.PAID;
-      order.save();
-    }
-  } catch (err) {
-    logger.err(messages.MSG5, err);
-    throw new Error({
-      error: err.message,
-      message: messages.MSG5,
-    });
-  }
+  paymentContext.setStrategy(moMoStrategy);
+  paymentContext.callback();
 };
 
 const checkStatusTransaction = asyncHandler(async (req, res, next) => {
@@ -427,6 +351,31 @@ const checkStatusTransaction = asyncHandler(async (req, res, next) => {
   }
 });
 
+const checkoutWithZaloPay = asyncHandler(async (req, res, next) => {
+  paymentContext.setStrategy(zaloPayStrategy);
+  const result = paymentContext.checkout(req.body.orderId, req.body.amount);
+  return res.status(200).json(result);
+});
+
+const callbackZaloPay = async (req, res, next) => {
+  paymentContext.setStrategy(zaloPayStrategy);
+  paymentContext.callback();
+};
+
+const checkoutWithVnPay = asyncHandler(async (req, res, next) => {
+  paymentContext.setStrategy(vnPayStrategy);
+  const result = paymentContext.checkout(req.body.orderId, req.body.amount);
+  res.status(200).json({ url: result });
+});
+
+const callbackVnPay = asyncHandler(async (req, res, next) => {
+  paymentContext.setStrategy(vnPayStrategy);
+  paymentContext.callback();
+  return res.redirect(
+    `${process.env.URL_CLIENT}/orderCompleted?orderId=${orderId}`
+  );
+});
+
 const sendMailDeliveryInfo = asyncHandler(async (req, res, next) => {
   const { orderId, email } = req.body;
   const order = await Order.findById(orderId);
@@ -452,4 +401,8 @@ export default {
   callbackMoMo: callbackMoMo,
   checkStatusTransaction: checkStatusTransaction,
   sendMailDeliveryInfo: sendMailDeliveryInfo,
+  checkoutWithZaloPay: checkoutWithZaloPay,
+  checkoutWithVnPay: checkoutWithVnPay,
+  callbackVnPay: callbackVnPay,
+  callbackZaloPay: callbackZaloPay
 };
