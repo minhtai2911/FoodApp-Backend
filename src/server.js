@@ -1,5 +1,4 @@
 import express from "express";
-import mongoose from "mongoose";
 import cors from "cors";
 import dotenv from "dotenv";
 import bodyParser from "body-parser";
@@ -11,6 +10,7 @@ import { RateLimiterRedis } from "rate-limiter-flexible";
 import { rateLimit } from "express-rate-limit";
 import { RedisStore } from "rate-limit-redis";
 import logger from "./utils/logger.js";
+import database from "./config/database.js";
 
 import authRoute from "./routes/authRoute.js";
 import userRoute from "./routes/userRoute.js";
@@ -26,8 +26,11 @@ import statisticRoute from "./routes/statisticRoute.js";
 import recommendationRoute from "./routes/recommendationRoute.js";
 import productViewRoute from "./routes/productViewRoute.js";
 import userAddressRoute from "./routes/userAddressRoute.js";
+import db from "./config/database.js";
 
 const app = express();
+dotenv.config();
+const PORT = process.env.PORT || 8000;
 const redisClient = new Redis(process.env.REDIS_URL);
 
 app.use(express.json());
@@ -44,21 +47,7 @@ app.use(
 app.use(helmet());
 app.use(passport.initialize());
 
-dotenv.config();
-const PORT = process.env.PORT || 8000;
-const DB_URL = process.env.DB_URL;
-
-mongoose
-  .connect(DB_URL)
-  .then(() => {
-    logger.info("Database connected successful!");
-    app.listen(PORT, () => {
-      logger.info(`Server is running on port ${PORT}`);
-    });
-  })
-  .catch((err) => {
-    logger.error("Database connection error", err);
-  });
+db.connect();
 
 app.use((req, res, next) => {
   logger.info(`Received ${req.method} request to ${req.url}`);
@@ -153,6 +142,10 @@ app.use("/api/v1/statistic", statisticRoute);
 app.use("/api/v1/recommendation", recommendationRoute);
 app.use("/api/v1/productView", productViewRoute);
 app.use("/api/v1/userAddress", userAddressRoute);
+
+app.listen(PORT, () => {
+  logger.info(`Server is running on port ${PORT}`);
+});
 
 process.on("unhandledRejection", (reason, promise) => {
   logger.error("Unhandled Rejection at", promise, "reason:", reason);
