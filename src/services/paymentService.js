@@ -90,10 +90,18 @@ export class MoMoStrategy {
     }
   }
 
-  async callback(orderId, resultCode) {
+  setOrderId(orderId) {
+    this.orderId = orderId;
+  }
+
+  setResultCode(resultCode) {
+    this.resultCode = resultCode;
+  }
+
+  async callback() {
     try {
-      if (resultCode === 0) {
-        const order = await Order.findById({ _id: orderId });
+      if (this.resultCode === 0) {
+        const order = await Order.findById({ _id: this.orderId });
 
         if (!order) {
           logger.warn("Đơn hàng không tồn tại");
@@ -176,13 +184,21 @@ export class ZaloPayStrategy {
       });
     }
   }
+  
+  setData(data) {
+    this.data = data;
+  }
 
-  async callback(data, mac) {
+  setMac(mac) {
+    this.mac = mac;
+  }
+
+  async callback() {
     try {
       const key2 = "kLtgPl8HHhfvMuDHPwKfgfsY4Ydm9eIz";
-      const { app_trans_id, amount } = JSON.parse(data);
+      const { app_trans_id, amount } = JSON.parse(this.data);
 
-      const raw = data;
+      const raw = this.data;
       const orderId = app_trans_id.split("_")[1];
       const order = await Order.findById(orderId);
       if (!order) {
@@ -195,7 +211,7 @@ export class ZaloPayStrategy {
         .update(raw)
         .digest("hex");
 
-      if (expected !== mac) {
+      if (expected !== this.mac) {
         logger.warn("Mã xác thực không hợp lệ!");
         throw new Error("Mã xác thực không hợp lệ!");
       }

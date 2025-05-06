@@ -327,8 +327,10 @@ const checkoutWithMoMo = asyncHandler(async (req, res, next) => {
 });
 
 const callbackMoMo = async (req, res, next) => {
+  moMoStrategy.setOrderId(req.body.orderId);
+  moMoStrategy.setResultCode(req.body.resultCode);
   paymentContext.setStrategy(moMoStrategy);
-  await paymentContext.callback(req.body.orderId, req.body.resultCode);
+  await paymentContext.callback();
 };
 
 const checkStatusTransaction = asyncHandler(async (req, res, next) => {
@@ -391,8 +393,10 @@ const checkoutWithZaloPay = asyncHandler(async (req, res, next) => {
 });
 
 const callbackZaloPay = async (req, res, next) => {
+  zaloPayStrategy.setData(req.body.data);
+  zaloPayStrategy.setMac(req.body.mac);
   paymentContext.setStrategy(zaloPayStrategy);
-  await paymentContext.callback(req.body.data, req.body.mac);
+  await paymentContext.callback();
 };
 
 const checkoutWithVnPay = asyncHandler(async (req, res, next) => {
