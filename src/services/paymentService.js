@@ -4,6 +4,7 @@ import { messages } from "../config/messageHelper.js";
 import crypto from "crypto";
 import moment from "moment";
 import logger from "../utils/logger.js";
+import { paymentStatus } from "../config/paymentStatus.js";
 
 //Strategy pattern
 export class MoMoStrategy {
@@ -223,11 +224,18 @@ export class ZaloPayStrategy {
 }
 
 export class VnPayStrategy {
-  async checkout(orderId, amount, ipAddr) {
+  setQuery(query) {
+    this.query = query;
+  }
+  setIpAddr(ipAddr) {
+    this.ipAddr = ipAddr;
+  }
+  async checkout(orderId, amount) {
     try {
       const orderInfo = "Thanh toán đơn hàng";
       const createDate = moment(new Date()).format("YYYYMMDDHHmmss");
       const bankCode = "NCB";
+      const ipAddr = this.ipAddr;
 
       const vnpUrl = process.env.VNP_URL;
       const vnpReturnUrl = `${process.env.URL_SERVER}/api/v1/order/callbackVnPay`;
@@ -275,9 +283,9 @@ export class VnPayStrategy {
     }
   }
 
-  async callback(query) {
+  async callback() {
     try {
-      let vnpParams = query;
+      let vnpParams = this.query;
       const secureHash = vnpParams["vnp_SecureHash"];
 
       const orderId = vnpParams["vnp_TxnRef"];
@@ -322,7 +330,7 @@ export class VnPayStrategy {
           await order.save();
 
           logger.info("Thanh toán VnPay thành công!");
-          const url = `${process.env.URL_CLIENT}/orderCompleted?orderId=${orderId}`
+          const url = `${process.env.URL_CLIENT}/orderCompleted?orderId=${orderId}`;
           return url;
         }
       }

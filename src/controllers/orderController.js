@@ -17,6 +17,7 @@ import {
   ZaloPayStrategy,
   PaymentContext,
 } from "../services/paymentService.js";
+import { query } from "express";
 
 const moMoStrategy = new MoMoStrategy();
 const vnPayStrategy = new VnPayStrategy();
@@ -374,18 +375,19 @@ const checkoutWithVnPay = asyncHandler(async (req, res, next) => {
     req.connection.remoteAddress ||
     req.socket.remoteAddress ||
     req.connection.socket.remoteAddress;
+  vnPayStrategy.setIpAddr(ipAddr);
   paymentContext.setStrategy(vnPayStrategy);
   const result = await paymentContext.checkout(
     req.body.orderId,
-    req.body.amount,
-    ipAddr
+    req.body.amount
   );
   res.status(200).json({ url: result });
 });
 
 const callbackVnPay = asyncHandler(async (req, res, next) => {
+  vnPayStrategy.setQuery(req.query);
   paymentContext.setStrategy(vnPayStrategy);
-  const url = await paymentContext.callback(req.query);
+  const url = await paymentContext.callback();
   return res.redirect(url);
 });
 

@@ -84,7 +84,7 @@ const signup = asyncHandler(async (req, res, next) => {
     return res.status(409).json({ message: messages.MSG51 });
   }
 
-  if (exists.isGuest) {
+  if (exists && exists.isGuest) {
     exists.password = password;
     exists.email = email;
     exists.fullName = fullName;
