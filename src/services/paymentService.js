@@ -121,7 +121,7 @@ export class ZaloPayStrategy {
       const endpoint = "https://sb-openapi.zalopay.vn/v2/create";
 
       const embed_data = {
-        redirectUrl: `${process.env.URL_CLIENT}/orderCompleted`,
+        redirectUrl: `${process.env.URL_CLIENT}/orderCompleted?orderId=${orderId}`,
       };
       const order = await Order.findById(orderId);
       if (!order) {
