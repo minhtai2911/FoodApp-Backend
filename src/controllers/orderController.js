@@ -385,10 +385,8 @@ const checkoutWithVnPay = asyncHandler(async (req, res, next) => {
 
 const callbackVnPay = asyncHandler(async (req, res, next) => {
   paymentContext.setStrategy(vnPayStrategy);
-  await paymentContext.callback(req.query);
-  return res.redirect(
-    `${process.env.URL_CLIENT}/orderCompleted?orderId=${orderId}`
-  );
+  const url = await paymentContext.callback(req.query);
+  return res.redirect(url);
 });
 
 const sendMailDeliveryInfo = asyncHandler(async (req, res, next) => {

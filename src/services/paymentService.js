@@ -322,7 +322,8 @@ export class VnPayStrategy {
           await order.save();
 
           logger.info("Thanh toán VnPay thành công!");
-          return;
+          const url = `${process.env.URL_CLIENT}/orderCompleted?orderId=${orderId}`
+          return url;
         }
       }
 
