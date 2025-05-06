@@ -292,13 +292,16 @@ const updatePaymentStatusById = asyncHandler(async (req, res, next) => {
 
 const checkoutWithMoMo = asyncHandler(async (req, res, next) => {
   paymentContext.setStrategy(moMoStrategy);
-  const result = paymentContext.checkout(req.body.orderId, req.body.amount);
+  const result = await paymentContext.checkout(
+    req.body.orderId,
+    req.body.amount
+  );
   res.status(200).json(result);
 });
 
 const callbackMoMo = async (req, res, next) => {
   paymentContext.setStrategy(moMoStrategy);
-  paymentContext.callback();
+  await paymentContext.callback(req.body.orderId, req.body.resultCode);
 };
 
 const checkStatusTransaction = asyncHandler(async (req, res, next) => {
@@ -353,24 +356,36 @@ const checkStatusTransaction = asyncHandler(async (req, res, next) => {
 
 const checkoutWithZaloPay = asyncHandler(async (req, res, next) => {
   paymentContext.setStrategy(zaloPayStrategy);
-  const result = paymentContext.checkout(req.body.orderId, req.body.amount);
+  const result = await paymentContext.checkout(
+    req.body.orderId,
+    req.body.amount
+  );
   return res.status(200).json(result);
 });
 
 const callbackZaloPay = async (req, res, next) => {
   paymentContext.setStrategy(zaloPayStrategy);
-  paymentContext.callback();
+  await paymentContext.callback(req.body.data, req.body.mac);
 };
 
 const checkoutWithVnPay = asyncHandler(async (req, res, next) => {
+  const ipAddr =
+    req.headers["x-forwarded-for"] ||
+    req.connection.remoteAddress ||
+    req.socket.remoteAddress ||
+    req.connection.socket.remoteAddress;
   paymentContext.setStrategy(vnPayStrategy);
-  const result = paymentContext.checkout(req.body.orderId, req.body.amount);
+  const result = await paymentContext.checkout(
+    req.body.orderId,
+    req.body.amount,
+    ipAddr
+  );
   res.status(200).json({ url: result });
 });
 
 const callbackVnPay = asyncHandler(async (req, res, next) => {
   paymentContext.setStrategy(vnPayStrategy);
-  paymentContext.callback();
+  await paymentContext.callback(req.query);
   return res.redirect(
     `${process.env.URL_CLIENT}/orderCompleted?orderId=${orderId}`
   );
@@ -404,5 +419,5 @@ export default {
   checkoutWithZaloPay: checkoutWithZaloPay,
   checkoutWithVnPay: checkoutWithVnPay,
   callbackVnPay: callbackVnPay,
-  callbackZaloPay: callbackZaloPay
+  callbackZaloPay: callbackZaloPay,
 };

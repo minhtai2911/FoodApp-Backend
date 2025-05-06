@@ -3,6 +3,7 @@ import Order from "../models/order.js";
 import { messages } from "../config/messageHelper.js";
 import crypto from "crypto";
 import moment from "moment";
+import logger from "../utils/logger.js";
 
 //Strategy pattern
 export class MoMoStrategy {
@@ -80,7 +81,7 @@ export class MoMoStrategy {
       logger.info("Bắt đầu quá trình thanh toán Momo");
       return response.data;
     } catch (err) {
-      logger.err(messages.MSG5, err);
+      logger.error(messages.MSG5, err);
       throw new Error({
         error: err.message,
         message: messages.MSG5,
@@ -88,10 +89,10 @@ export class MoMoStrategy {
     }
   }
 
-  async callback() {
+  async callback(orderId, resultCode) {
     try {
-      if (req.body.resultCode === 0) {
-        const order = await Order.findById({ _id: req.body.orderId });
+      if (resultCode === 0) {
+        const order = await Order.findById({ _id: orderId });
 
         if (!order) {
           logger.warn("Đơn hàng không tồn tại");
@@ -102,7 +103,7 @@ export class MoMoStrategy {
         order.save();
       }
     } catch (err) {
-      logger.err(messages.MSG5, err);
+      logger.error(messages.MSG5, err);
       throw new Error({
         error: err.message,
         message: messages.MSG5,
@@ -122,6 +123,9 @@ export class ZaloPayStrategy {
         redirectUrl: `${process.env.URL_CLIENT}/orderCompleted`,
       };
       const order = await Order.findById(orderId);
+      if (!order) {
+        throw new Error("Not found");
+      }
 
       let zaloPayParams = {
         app_id: app_id,
@@ -164,7 +168,7 @@ export class ZaloPayStrategy {
       });
       return result.data;
     } catch (err) {
-      logger.err(messages.MSG5, err);
+      logger.error(messages.MSG5, err);
       throw new Error({
         error: err.message,
         message: messages.MSG5,
@@ -172,13 +176,12 @@ export class ZaloPayStrategy {
     }
   }
 
-  async callback() {
+  async callback(data, mac) {
     try {
       const key2 = "kLtgPl8HHhfvMuDHPwKfgfsY4Ydm9eIz";
-      const { app_trans_id, amount } = JSON.parse(req.body.data);
-      const mac = req.body.mac;
+      const { app_trans_id, amount } = JSON.parse(data);
 
-      const raw = req.body.data;
+      const raw = data;
       const orderId = app_trans_id.split("_")[1];
       const order = await Order.findById(orderId);
       if (!order) {
@@ -220,22 +223,16 @@ export class ZaloPayStrategy {
 }
 
 export class VnPayStrategy {
-  async checkout(orderId, amount) {
+  async checkout(orderId, amount, ipAddr) {
     try {
       const orderInfo = "Thanh toán đơn hàng";
       const createDate = moment(new Date()).format("YYYYMMDDHHmmss");
-      const bankCode = req.body.bankCode || "NCB";
+      const bankCode = "NCB";
 
       const vnpUrl = process.env.VNP_URL;
       const vnpReturnUrl = `${process.env.URL_SERVER}/api/v1/order/callbackVnPay`;
       const vnpTmnCode = process.env.VNP_TMNCODE;
       const vnpHashSecret = process.env.VNP_HASH_SECRET;
-
-      const ipAddr =
-        req.headers["x-forwarded-for"] ||
-        req.connection.remoteAddress ||
-        req.socket.remoteAddress ||
-        req.connection.socket.remoteAddress;
 
       let vnpParams = {
         vnp_Version: "2.1.0",
@@ -270,17 +267,17 @@ export class VnPayStrategy {
       const url = `${vnpUrl}?${queryString}`;
       return url;
     } catch (err) {
-      logger.error("Có lỗi xảy ra trong quá trình thanh toán ZaloPay", err);
+      logger.error("Có lỗi xảy ra trong quá trình thanh toán VnPay", err);
       throw new Error({
         error: err.message,
-        message: "Có lỗi xảy ra trong quá trình thanh toán ZaloPay",
+        message: "Có lỗi xảy ra trong quá trình thanh toán VnPay",
       });
     }
   }
 
-  async callback() {
+  async callback(query) {
     try {
-      let vnpParams = req.query;
+      let vnpParams = query;
       const secureHash = vnpParams["vnp_SecureHash"];
 
       const orderId = vnpParams["vnp_TxnRef"];
@@ -332,10 +329,10 @@ export class VnPayStrategy {
       logger.warn("Thanh toán VnPay thất bại!");
       throw new Error("Thanh toán VnPay thất bại!");
     } catch (err) {
-      logger.error("Có lỗi xảy ra trong quá trình thanh toán ZaloPay", err);
+      logger.error("Có lỗi xảy ra trong quá trình thanh toán VnPay", err);
       throw new Error({
         error: err.message,
-        message: "Có lỗi xảy ra trong quá trình thanh toán ZaloPay",
+        message: "Có lỗi xảy ra trong quá trình thanh toán VnPay",
       });
     }
   }
@@ -354,4 +351,3 @@ export class PaymentContext {
     return this.strategy.callback();
   }
 }
-
