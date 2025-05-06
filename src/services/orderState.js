@@ -1,6 +1,10 @@
 import { orderStatus } from "../config/orderStatus.js";
+import ProductVariant from "../models/productVariant.js";
+import Product from "../models/product.js";
+import { addOrderToReport } from "../controllers/statisticController.js";
 
-class OrderService {
+//State pattern
+export class OrderService {
   constructor(order) {
     this.order = order;
     switch (order.deliveryInfo[order.deliveryInfo.length - 1].status) {
@@ -32,100 +36,245 @@ class OrderService {
     this.state = state;
   }
 
-  nextState(deliveryAddress) {
-    this.state.next(deliveryAddress);
+  changeState(state) {
+    this.state.changeState(state);
+  }
+
+  getOrder() {
+    return this.state.getOrder();
+  }
+
+  async execute(redisClient) {
+    this.state.execute(redisClient);
   }
 }
 
-class PendingState {
-  constructor(context, order) {
+export class PendingState {
+  constructor(context, order, options = {}) {
     this.context = context;
     this.order = order;
+
+    if (options.status && options.deliveryAddress) {
+      this.order.deliveryInfo.push({
+        status: options.status,
+        deliveryAddress: options.deliveryAddress,
+        deliveryDate: new Date(),
+      });
+    }
+
+    if (options.expectedDeliveryDate) {
+      this.order.expectedDeliveryDate = options.expectedDeliveryDate;
+    }
   }
 
-  next(deliveryAddress) {
-    this.order.deliveryInfo.push({
-      status: orderStatus.ACCEPTED,
-      deliveryAddress: deliveryAddress,
-    });
-    this.context.setState(new AcceptedState(this.context, this.order));
+  changeState(state) {
+    this.context.setState(state);
+  }
+
+  getOrder() {
+    return this.order;
+  }
+
+  async execute(redisClient) {}
+}
+
+export class AcceptedState {
+  constructor(context, order, options = {}) {
+    this.context = context;
+    this.order = order;
+
+    if (options.status && options.deliveryAddress) {
+      this.order.deliveryInfo.push({
+        status: options.status,
+        deliveryAddress: options.deliveryAddress,
+        deliveryDate: new Date(),
+      });
+    }
+
+    if (options.expectedDeliveryDate) {
+      this.order.expectedDeliveryDate = options.expectedDeliveryDate;
+    }
+  }
+
+  changeState(state) {
+    this.context.setState(state);
+  }
+
+  getOrder() {
+    return this.order;
+  }
+
+  async execute(redisClient) {
+    try {
+      for (let orderItem of this.order.orderItems) {
+        const cacheKey = `productVariant:${orderItem.productVariantId}`;
+        const productVariant = await ProductVariant.findById(
+          orderItem.productVariantId
+        );
+        productVariant.stock -= orderItem.quantity;
+        await redisClient.hincrby(cacheKey, "stock", -orderItem.quantity);
+        await productVariant.save();
+      }
+    } catch (err) {
+      throw new Error(err.message);
+    }
   }
 }
 
-class AcceptedState {
-  constructor(context, order) {
+export class ProcessingState {
+  constructor(context, order, options = {}) {
     this.context = context;
     this.order = order;
+
+    if (options.status && options.deliveryAddress) {
+      this.order.deliveryInfo.push({
+        status: options.status,
+        deliveryAddress: options.deliveryAddress,
+        deliveryDate: new Date(),
+      });
+    }
+
+    if (options.expectedDeliveryDate) {
+      this.order.expectedDeliveryDate = options.expectedDeliveryDate;
+    }
   }
 
-  next(deliveryAddress) {
-    this.order.deliveryInfo.push({
-      status: orderStatus.PROCESSING,
-      deliveryAddress: deliveryAddress,
-    });
-    this.context.setState(new ProcessingState(this.context, this.order));
+  changeState(state) {
+    this.context.setState(state);
+  }
+
+  getOrder() {
+    return this.order;
+  }
+
+  async execute(redisClient) {}
+}
+
+export class InDeliveryState {
+  constructor(context, order, options = {}) {
+    this.context = context;
+    this.order = order;
+
+    if (options.status && options.deliveryAddress) {
+      this.order.deliveryInfo.push({
+        status: options.status,
+        deliveryAddress: options.deliveryAddress,
+        deliveryDate: new Date(),
+      });
+    }
+
+    if (options.expectedDeliveryDate) {
+      this.order.expectedDeliveryDate = options.expectedDeliveryDate;
+    }
+  }
+
+  changeState(state) {
+    this.context.setState(state);
+  }
+
+  getOrder() {
+    return this.order;
+  }
+
+  async execute(redisClient) {}
+}
+
+export class ShippedState {
+  constructor(context, order, options = {}) {
+    this.context = context;
+    this.order = order;
+
+    if (options.status && options.deliveryAddress) {
+      this.order.deliveryInfo.push({
+        status: options.status,
+        deliveryAddress: options.deliveryAddress,
+        deliveryDate: new Date(),
+      });
+    }
+
+    if (options.expectedDeliveryDate) {
+      this.order.expectedDeliveryDate = options.expectedDeliveryDate;
+    }
+  }
+
+  changeState(state) {
+    this.context.setState(state);
+  }
+
+  getOrder() {
+    return this.order;
+  }
+
+  async execute(redisClient) {
+    try {
+      for (let orderItem of this.order.orderItems) {
+        const cacheKey = `product:${orderItem.productId}`;
+        const product = await Product.findById(orderItem.productId);
+        product.soldQuantity += orderItem.quantity;
+        await redisClient.hincrby(cacheKey, "soldQuantity", orderItem.quantity);
+        await product.save();
+      }
+      addOrderToReport(this.order.finalPrice);
+    } catch (err) {
+      throw new Error(err.message);
+    }
   }
 }
 
-class ProcessingState {
-  constructor(context, order) {
+export class CancelledCustomerState {
+  constructor(context, order, options = {}) {
     this.context = context;
     this.order = order;
+
+    if (options.status && options.deliveryAddress) {
+      this.order.deliveryInfo.push({
+        status: options.status,
+        deliveryAddress: options.deliveryAddress,
+        deliveryDate: new Date(),
+      });
+    }
+
+    if (options.expectedDeliveryDate) {
+      this.order.expectedDeliveryDate = options.expectedDeliveryDate;
+    }
   }
 
-  next(deliveryAddress) {
-    this.order.deliveryInfo.push({
-      status: orderStatus.IN_DELIVERY,
-      deliveryAddress: deliveryAddress,
-    });
-    this.context.setState(new InDeliveryState(this.context, this.order));
+  changeState(state) {
+    this.context.setState(state);
   }
+
+  getOrder() {
+    return this.order;
+  }
+
+  async execute(redisClient) {}
 }
 
-class InDeliveryState {
-  constructor(context, order) {
+export class CancelledEmployeeState {
+  constructor(context, order, options = {}) {
     this.context = context;
     this.order = order;
+
+    if (options.status && options.deliveryAddress) {
+      this.order.deliveryInfo.push({
+        status: options.status,
+        deliveryAddress: options.deliveryAddress,
+        deliveryDate: new Date(),
+      });
+    }
+
+    if (options.expectedDeliveryDate) {
+      this.order.expectedDeliveryDate = options.expectedDeliveryDate;
+    }
   }
 
-  next(deliveryAddress) {
-    this.order.deliveryInfo.push({
-      status: orderStatus.SHIPPED,
-      deliveryAddress: deliveryAddress,
-    });
-    this.context.setState(new ShippedState(this.context, this.order));
-  }
-}
-
-class ShippedState {
-  constructor(context, order) {
-    this.context = context;
-    this.order = order;
+  changeState(state) {
+    this.context.setState(state);
   }
 
-  next(deliveryAddress) {
-    throw new Error("Đơn hàng đã hoàn thành. Không có trạng thái tiếp theo");
-  }
-}
-
-class CancelledCustomerState {
-  constructor(context, order) {
-    this.context = context;
-    this.order = order;
+  getOrder() {
+    return this.order;
   }
 
-  next(deliveryAddress) {
-    throw new Error("Đơn hàng đã hủy. Không có trạng thái tiếp theo");
-  }
-}
-
-class CancelledEmployeeState {
-  constructor(context, order) {
-    this.context = context;
-    this.order = order;
-  }
-
-  next(deliveryAddress) {
-    throw new Error("Đơn hàng đã hủy. Không có trạng thái tiếp theo");
-  }
+  async execute(redisClient) {}
 }

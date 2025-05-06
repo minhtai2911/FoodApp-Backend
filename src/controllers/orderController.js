@@ -4,11 +4,8 @@ import { messages } from "../config/messageHelper.js";
 import mongoose from "mongoose";
 import { paymentStatus } from "../config/paymentStatus.js";
 import { orderStatus } from "../config/orderStatus.js";
-import { addOrderToReport } from "../controllers/statisticController.js";
 import asyncHandler from "../middlewares/asyncHandler.js";
 import sendDeliveryInfo from "../utils/sendDeliveryInfo.js";
-import Product from "../models/product.js";
-import ProductVariant from "../models/productVariant.js";
 import logger from "../utils/logger.js";
 import axios from "axios";
 import {
@@ -17,7 +14,16 @@ import {
   ZaloPayStrategy,
   PaymentContext,
 } from "../services/paymentService.js";
-import { query } from "express";
+import {
+  OrderService,
+  PendingState,
+  AcceptedState,
+  ProcessingState,
+  ShippedState,
+  InDeliveryState,
+  CancelledCustomerState,
+  CancelledEmployeeState,
+} from "../services/orderState.js";
 
 const moMoStrategy = new MoMoStrategy();
 const vnPayStrategy = new VnPayStrategy();
@@ -211,64 +217,84 @@ const createOrder = asyncHandler(async (req, res, next) => {
 const updateDeliveryInfoById = asyncHandler(async (req, res, next) => {
   const orderId = req.params.id;
   const { status, deliveryAddress, expectedDeliveryDate } = req.body;
-  const order = await Order.findById(orderId);
+  let order = await Order.findById(orderId);
 
   if (!order) {
     logger.warn("Đơn hàng không tồn tại");
     return res.status(404).json({ error: "Not found" });
   }
 
-  order.expectedDeliveryDate =
-    expectedDeliveryDate || order.expectedDeliveryDate;
-
+  const orderService = new OrderService(order);
   if (!status || !deliveryAddress) {
     logger.warn(messages.MSG1);
     throw new Error(messages.MSG1);
   }
 
-  order.deliveryInfo.push({
-    status,
-    deliveryAddress,
-  });
+  let state;
 
-  if (status === orderStatus.ACCEPTED) {
-    for (let orderItem of order.orderItems) {
-      const cacheKey = `productVariant:${orderItem.productVariantId}`;
-      const productVariant = await ProductVariant.findById(
-        orderItem.productVariantId
+  switch (status) {
+    case orderStatus.PENDING:
+      state = new PendingState(orderService, orderService.getOrder(), {
+        status,
+        deliveryAddress,
+        expectedDeliveryDate,
+      });
+      break;
+    case orderStatus.ACCEPTED:
+      state = new AcceptedState(orderService, orderService.getOrder(), {
+        status,
+        deliveryAddress,
+        expectedDeliveryDate,
+      });
+      break;
+    case orderStatus.PROCESSING:
+      state = new ProcessingState(orderService, orderService.getOrder(), {
+        status,
+        deliveryAddress,
+        expectedDeliveryDate,
+      });
+      break;
+    case orderStatus.IN_DELIVERY:
+      state = new InDeliveryState(orderService, orderService.getOrder(), {
+        status,
+        deliveryAddress,
+        expectedDeliveryDate,
+      });
+      break;
+    case orderStatus.SHIPPED:
+      state = new ShippedState(orderService, orderService.getOrder(), {
+        status,
+        deliveryAddress,
+        expectedDeliveryDate,
+      });
+      break;
+    case orderStatus.CANCELLED_CUSTOMER:
+      state = new CancelledCustomerState(
+        orderService,
+        orderService.getOrder(),
+        {
+          status,
+          deliveryAddress,
+          expectedDeliveryDate,
+        }
       );
-      productVariant.stock -= orderItem.quantity;
-      await req.redisClient.hincrby(cacheKey, "stock", -orderItem.quantity);
-      await productVariant.save();
-    }
+      break;
+    case orderStatus.CANCELLED_EMPLOYEE:
+      state = new CancelledEmployeeState(
+        orderService,
+        orderService.getOrder(),
+        {
+          status,
+          deliveryAddress,
+          expectedDeliveryDate,
+        }
+      );
+      break;
   }
 
-  if (status === orderStatus.RETURNED) {
-    for (let orderItem of order.orderItems) {
-      const cacheKey = `productVariant:${orderItem.productVariantId}`;
-      const productVariant = await ProductVariant.findById(
-        orderItem.productVariantId
-      );
-      productVariant.stock += orderItem.quantity;
-      await req.redisClient.hincrby(cacheKey, "stock", orderItem.quantity);
-      await productVariant.save();
-    }
-  }
-
-  if (status === orderStatus.SHIPPED) {
-    for (let orderItem of order.orderItems) {
-      const cacheKey = `product:${orderItem.productId}`;
-      const product = await Product.findById(orderItem.productId);
-      product.soldQuantity += orderItem.quantity;
-      await req.redisClient.hincrby(
-        cacheKey,
-        "soldQuantity",
-        orderItem.quantity
-      );
-      await product.save();
-    }
-    addOrderToReport(order.finalPrice);
-  }
+  orderService.changeState(state);
+  await orderService.execute(req.redisClient);
+  order = orderService.getOrder();
 
   logger.info(messages.MSG44);
   await order.save();
