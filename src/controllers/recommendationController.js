@@ -1,44 +1,35 @@
 import * as tf from "@tensorflow/tfjs-node";
 import Product from "../models/product.js";
 import ProductView from "../models/productView.js";
+import Order from "../models/order.js";
 import { messages } from "../config/messageHelper.js";
+import logger from "../utils/logger.js";
 
 const getUserProductData = async () => {
   try {
-    const pipeline = [
-      {
-        $lookup: {
-          from: "orders",
-          localField: "orderId",
-          foreignField: "_id",
-          as: "orderInfo",
-        },
-      },
-      {
-        $lookup: {
-          from: "productvariants",
-          localField: "productVariantId",
-          foreignField: "_id",
-          as: "productVariantInfo",
-        },
-      },
-      {
-        $project: {
-          userId: { $arrayElemAt: ["$orderInfo.userId", 0] },
-          productId: { $arrayElemAt: ["$productVariantInfo.productId", 0] },
-        },
-      },
-    ];
+    const orders = await Order.find({}).populate("orderItems.productId");
+    const dataRaw = orders.reduce((acc, order) => {
+      const orderItems = order.orderItems.map((item) => ({
+        userId: order.userId,
+        productId: item.productId._id,
+      }));
+      return [...acc, ...orderItems];
+    }, []);
 
-    // const productPurchase = await OrderDetail.aggregate(pipeline);
     const productView = await ProductView.find();
-    // const dataRaw = [...productPurchase, ...productView];
-    const dataRaw = [...productView];
+    dataRaw.push(
+      ...productView.map((item) => ({
+        userId: item.userId,
+        productId: item.productId,
+      }))
+    );
 
     if (!dataRaw || dataRaw.length === 0) {
+      logger.error("No data found from database.");
       throw new Error("No data found from database.");
     }
 
+    logger.info("Data fetched successfully from database.");
     return dataRaw
       .filter((item) => item.userId && item.productId)
       .map((item) => ({
@@ -46,6 +37,7 @@ const getUserProductData = async () => {
         productId: item.productId.toString(),
       }));
   } catch (err) {
+    logger.error("No data found from database.");
     throw new Error(err.message);
   }
 };
@@ -73,6 +65,7 @@ const trainModel = async () => {
       Object.keys(userEncoder).length === 0 ||
       Object.keys(productEncoder).length === 0
     ) {
+      logger.error("Not enough data for training.");
       throw new Error("Not enough data for training");
     }
 
@@ -136,8 +129,10 @@ const trainModel = async () => {
       batchSize: 64,
     });
 
+    logger.info("Model trained successfully.");
     return { model, userEncoder, productEncoder, productDecoder };
   } catch (err) {
+    logger.error("Error training model: ", err.message);
     throw new Error(err.message);
   }
 };
@@ -168,6 +163,7 @@ const recommend = async (req, res, next) => {
         new Map(products.map((item) => [item._id.toString(), item])).values()
       );
 
+      logger.info("No user found, returning best sellers and new arrivals.");
       return res.status(200).json({ data: result });
     }
 
@@ -205,10 +201,12 @@ const recommend = async (req, res, next) => {
       result.push(product);
     }
 
+    logger.info("Recommendations generated successfully.");
     res.status(200).json({ data: result });
   } catch (err) {
     if (err.message === "No data found from database.")
       return res.status(200).json({ data: [] });
+    logger.error("Error generating recommendations: ", err.message);
     res.status(500).json({
       error: err.message,
       message: messages.MSG5,
