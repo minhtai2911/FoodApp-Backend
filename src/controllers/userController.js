@@ -191,7 +191,7 @@ const createUser = asyncHandler(async (req, res, next) => {
     exists.expiresAt = null;
     exists.save();
     logger.info(messages.MSG16);
-    return res.status(201).json({ data: exists._id, message: messages.MSG16 });
+    return res.status(201).json({ data: exists._id, message: messages.MSG22 });
   }
 
   const role = await UserRole.findOne({ roleName: roleName });
