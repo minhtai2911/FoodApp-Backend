@@ -4,6 +4,7 @@ import ProductView from "../models/productView.js";
 import Order from "../models/order.js";
 import { messages } from "../config/messageHelper.js";
 import logger from "../utils/logger.js";
+import * as Sentry from "@sentry/node";
 
 const getUserProductData = async () => {
   try {
@@ -207,6 +208,7 @@ const recommend = async (req, res, next) => {
     if (err.message === "No data found from database.")
       return res.status(200).json({ data: [] });
     logger.error("Error generating recommendations: ", err.message);
+    Sentry.captureException(err);
     res.status(500).json({
       error: err.message,
       message: messages.MSG5,

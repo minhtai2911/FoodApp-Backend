@@ -10,7 +10,7 @@ import { RateLimiterRedis } from "rate-limiter-flexible";
 import { rateLimit } from "express-rate-limit";
 import { RedisStore } from "rate-limit-redis";
 import logger from "./utils/logger.js";
-import database from "./config/database.js";
+import * as Sentry from "@sentry/node";
 
 import authRoute from "./routes/authRoute.js";
 import userRoute from "./routes/userRoute.js";
@@ -27,6 +27,7 @@ import recommendationRoute from "./routes/recommendationRoute.js";
 import productViewRoute from "./routes/productViewRoute.js";
 import userAddressRoute from "./routes/userAddressRoute.js";
 import db from "./config/database.js";
+import "./config/sentry.js";
 
 const app = express();
 dotenv.config();
@@ -143,10 +144,13 @@ app.use("/api/v1/recommendation", recommendationRoute);
 app.use("/api/v1/productView", productViewRoute);
 app.use("/api/v1/userAddress", userAddressRoute);
 
+Sentry.setupExpressErrorHandler(app);
+
 app.listen(PORT, () => {
   logger.info(`Server is running on port ${PORT}`);
 });
 
 process.on("unhandledRejection", (reason, promise) => {
   logger.error("Unhandled Rejection at", promise, "reason:", reason);
+  Sentry.captureException(reason);
 });

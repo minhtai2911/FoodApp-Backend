@@ -1,6 +1,7 @@
 import mongoose from "mongoose";
 import logger from "../utils/logger.js";
 import dotenv from "dotenv";
+import * as Sentry from "@sentry/node";
 
 dotenv.config();
 const DB_URL = process.env.DB_URL;
@@ -19,11 +20,12 @@ class DBConnection {
         .connect(DB_URL)
         .then(() => {
           logger.info("Database connected successful!");
+          this.connected = true;
         })
         .catch((err) => {
           logger.error("Database connection error", err);
+          Sentry.captureException(err);
         });
-      this.connected = true;
     }
   }
 }
