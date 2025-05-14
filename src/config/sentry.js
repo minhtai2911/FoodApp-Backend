@@ -1,7 +1,9 @@
 import * as Sentry from "@sentry/node"
+import dotenv from "dotenv"
+dotenv.config()
 
 Sentry.init({
-  dsn: "https://683812db1fee9f4a744e8192186c07a3@o4509320183742464.ingest.us.sentry.io/4509320211464192",
+  dsn: process.env.SENTRY_DSN,
 
   // Setting this option to true will send default PII data to Sentry.
   // For example, automatic IP address collection on events
