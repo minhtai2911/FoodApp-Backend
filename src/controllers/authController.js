@@ -112,6 +112,14 @@ const signup = asyncHandler(async (req, res, next) => {
 });
 
 const sendMailVerifyAccount = asyncHandler(async (req, res, next) => {
+  const email = req.body.email;
+  const user = await User.findOne({ email: email });
+
+  if (!user) {
+    logger.warn(messages.MSG8);
+    return res.status(409).json({ message: messages.MSG8 });
+  }
+
   const transporter = nodemailer.createTransport({
     host: "smtp.gmail.com",
     port: 587,
@@ -127,7 +135,7 @@ const sendMailVerifyAccount = asyncHandler(async (req, res, next) => {
     to: `${req.body.email}`,
     subject: "YÊU CẦU XÁC NHẬN THÔNG TIN ĐĂNG KÝ TÀI KHOẢN TỪ FOODYRUSH`,",
     html: `
-      <a href="${process.env.URL_CLIENT}/verify/${req.body.id}">Nhấn vào đây để xác nhận email của bạn.</a>
+      <a href="${process.env.URL_CLIENT}/verify/${user._id.toString()}">Nhấn vào đây để xác nhận email của bạn.</a>
       `,
   });
   logger.info(messages.MSG4);
