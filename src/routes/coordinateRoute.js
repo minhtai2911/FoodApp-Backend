@@ -11,13 +11,14 @@ router.post(
   coordinateController.createCoordinate
 );
 router.get(
-  "/",
+  "/:orderId",
   authMiddleware.verifyToken,
-  coordinateController.getCoordinateByUserId
+  coordinateController.getCoordinateByOrderId
 );
 router.put(
   "/:id",
   authMiddleware.verifyToken,
+  authMiddleware.checkPermission(["Employee"]),
   coordinateController.updateCoordinateById
 );
 
