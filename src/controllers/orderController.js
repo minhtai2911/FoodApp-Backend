@@ -40,22 +40,7 @@ const getAllOrders = asyncHandler(async (req, res, next) => {
   if (req.query.paymentMethod) query.paymentMethod = req.query.paymentMethod;
   if (req.query.paymentStatus) query.paymentStatus = req.query.paymentStatus;
 
-  const pipeline = [
-    { $match: query },
-    {
-      $lookup: {
-        from: "users",
-        localField: "userId",
-        foreignField: "_id",
-        as: "userInfo",
-      },
-    },
-    { $unwind: "$userInfo" },
-    { $skip: skip },
-    { $limit: limit },
-  ];
-
-  const totalCountPipeline = [
+  const basePipeline = [
     { $match: query },
     {
       $lookup: {
@@ -69,13 +54,7 @@ const getAllOrders = asyncHandler(async (req, res, next) => {
   ];
 
   if (req.query.search) {
-    pipeline.push({
-      $match: {
-        "userInfo.fullName": { $regex: req.query.search, $options: "i" },
-      },
-    });
-
-    totalCountPipeline.push({
+    basePipeline.push({
       $match: {
         "userInfo.fullName": { $regex: req.query.search, $options: "i" },
       },
@@ -83,42 +62,38 @@ const getAllOrders = asyncHandler(async (req, res, next) => {
   }
 
   if (req.query.status) {
-    pipeline.push(
+    basePipeline.push(
       {
         $addFields: {
           lastStatus: { $last: "$deliveryInfo.status" },
         },
       },
-      ...(req.query.status
-        ? [{ $match: { lastStatus: req.query.status } }]
-        : [])
-    );
-
-    totalCountPipeline.push(
       {
-        $addFields: {
-          lastStatus: { $last: "$deliveryInfo.status" },
+        $match: {
+          lastStatus: { $regex: `^${req.query.status}$`, $options: "i" },
         },
-      },
-      ...(req.query.status
-        ? [{ $match: { lastStatus: req.query.status } }]
-        : [])
+      }
     );
   }
 
-  totalCountPipeline.push({ $count: "count" });
+  const totalCountPipeline = [...basePipeline, { $count: "count" }];
 
-  pipeline.push({
-    $project: {
-      status: 1,
-      paymentMethod: 1,
-      paymentStatus: 1,
-      "userInfo.fullName": 1,
-      deliveryInfo: 1,
-      finalPrice: 1,
-      createdAt: 1,
+  const pipeline = [
+    ...basePipeline,
+    { $skip: skip },
+    { $limit: limit },
+    {
+      $project: {
+        status: 1,
+        paymentMethod: 1,
+        paymentStatus: 1,
+        "userInfo.fullName": 1,
+        deliveryInfo: 1,
+        finalPrice: 1,
+        createdAt: 1,
+      },
     },
-  });
+  ];
 
   const totalResult = await Order.aggregate(totalCountPipeline);
   const totalCount = totalResult[0]?.count || 0;
