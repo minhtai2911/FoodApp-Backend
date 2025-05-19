@@ -1,9 +1,10 @@
 import Coordinate from "../models/coordinate.js";
 import asyncHandler from "../middlewares/asyncHandler.js";
 
-const createCoordinate = asyncHandler(async (req, res) => {
+const createCoordinate = asyncHandler(async (req, res, next) => {
   const { latitude, longitude } = req.body;
-  const userId = req.user._id;
+  const userId = req.user.id;
+  console.log(userId);
 
   const coordinate = await Coordinate.create({
     userId,
@@ -16,8 +17,8 @@ const createCoordinate = asyncHandler(async (req, res) => {
   });
 });
 
-const getCoordinateByUserId = asyncHandler(async (req, res) => {
-    const userId = req.user._id;
+const getCoordinateByUserId = asyncHandler(async (req, res, next) => {
+    const userId = req.user.id;
     
     const coordinates = await Coordinate.findOne({ userId });
     
@@ -31,12 +32,12 @@ const getCoordinateByUserId = asyncHandler(async (req, res) => {
     });
 })
 
-const updateCoordinateById = asyncHandler(async (req, res) => {
+const updateCoordinateById = asyncHandler(async (req, res, next) => {
     const { latitude, longitude } = req.body;
 
     const coordinate = await Coordinate.findById(req.params.id);
 
-    if (req.user._id.toString() !== coordinate.userId.toString()) {
+    if (req.user.id.toString() !== coordinate.userId.toString()) {
         res.status(403);
         throw new Error("You are not authorized to update this coordinate");
     }
