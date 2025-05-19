@@ -26,6 +26,7 @@ import statisticRoute from "./routes/statisticRoute.js";
 import recommendationRoute from "./routes/recommendationRoute.js";
 import productViewRoute from "./routes/productViewRoute.js";
 import userAddressRoute from "./routes/userAddressRoute.js";
+import coordinateRoute from "./routes/coordinateRoute.js";
 import db from "./config/database.js";
 import "./config/sentry.js";
 
@@ -143,6 +144,7 @@ app.use("/api/v1/statistic", statisticRoute);
 app.use("/api/v1/recommendation", recommendationRoute);
 app.use("/api/v1/productView", productViewRoute);
 app.use("/api/v1/userAddress", userAddressRoute);
+app.use("/api/v1/coordinate", coordinateRoute);
 
 Sentry.setupExpressErrorHandler(app);
 
