@@ -18,12 +18,19 @@ const createStatistic = asyncHandler(async (req, res, next) => {
     },
     {
       $addFields: {
-        lastStatus: { $last: "$deliveryInfo.status" },
+        lastStatus: {
+          $let: {
+            vars: {
+              lastDelivery: { $arrayElemAt: ["$deliveryInfo", -1] },
+            },
+            in: "$$lastDelivery.status",
+          },
+        },
       },
     },
     {
       $match: {
-        lastStatus: orderStatus.SHIPPED
+        lastStatus: orderStatus.SHIPPED,
       },
     },
     {

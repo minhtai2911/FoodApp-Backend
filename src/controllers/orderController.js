@@ -65,7 +65,16 @@ const getAllOrders = asyncHandler(async (req, res, next) => {
     basePipeline.push(
       {
         $addFields: {
-          lastStatus: { $last: "$deliveryInfo.status" },
+          lastStatus: {
+            $let: {
+              vars: {
+                lastDelivery: {
+                  $arrayElemAt: ["$deliveryInfo", -1],
+                },
+              },
+              in: "$$lastDelivery.status",
+            },
+          },
         },
       },
       {
