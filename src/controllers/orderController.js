@@ -37,7 +37,6 @@ const getAllOrders = asyncHandler(async (req, res, next) => {
   const limit = parseInt(req.query.limit) || 10;
   const skip = (page - 1) * limit;
 
-  if (req.query.status) query["deliveryInfo.status"] = req.query.status;
   if (req.query.paymentMethod) query.paymentMethod = req.query.paymentMethod;
   if (req.query.paymentStatus) query.paymentStatus = req.query.paymentStatus;
 
@@ -56,13 +55,58 @@ const getAllOrders = asyncHandler(async (req, res, next) => {
     { $limit: limit },
   ];
 
+  const totalCountPipeline = [
+    { $match: query },
+    {
+      $lookup: {
+        from: "users",
+        localField: "userId",
+        foreignField: "_id",
+        as: "userInfo",
+      },
+    },
+    { $unwind: "$userInfo" },
+  ];
+
   if (req.query.search) {
     pipeline.push({
       $match: {
         "userInfo.fullName": { $regex: req.query.search, $options: "i" },
       },
     });
+
+    totalCountPipeline.push({
+      $match: {
+        "userInfo.fullName": { $regex: req.query.search, $options: "i" },
+      },
+    });
   }
+
+  if (req.query.status) {
+    pipeline.push(
+      {
+        $addFields: {
+          lastStatus: { $last: "$deliveryInfo.status" },
+        },
+      },
+      ...(req.query.status
+        ? [{ $match: { lastStatus: req.query.status } }]
+        : [])
+    );
+
+    totalCountPipeline.push(
+      {
+        $addFields: {
+          lastStatus: { $last: "$deliveryInfo.status" },
+        },
+      },
+      ...(req.query.status
+        ? [{ $match: { lastStatus: req.query.status } }]
+        : [])
+    );
+  }
+
+  totalCountPipeline.push({ $count: "count" });
 
   pipeline.push({
     $project: {
@@ -76,7 +120,8 @@ const getAllOrders = asyncHandler(async (req, res, next) => {
     },
   });
 
-  const totalCount = await Order.countDocuments(query);
+  const totalResult = await Order.aggregate(totalCountPipeline);
+  const totalCount = totalResult[0]?.count || 0;
   const orders = await Order.aggregate(pipeline);
 
   logger.info("Lấy danh sách đơn hàng thành công!", { ...query, page, limit });

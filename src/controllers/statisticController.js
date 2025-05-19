@@ -7,47 +7,44 @@ import logger from "../utils/logger.js";
 const createStatistic = asyncHandler(async (req, res, next) => {
   const { day, month, year } = req.body;
 
-  const todayStart = new Date(year, month - 1, day);
-  const todayEnd = new Date(year, month - 1, day + 1);
-
-  const totalOrder = await Order.countDocuments({
-    $expr: {
-      $eq: [
-        { $arrayElemAt: ["$deliveryInfo.status", -1] },
-        orderStatus.SHIPPED,
-      ],
-    },
-    updatedAt: { $gte: todayStart, $lt: todayEnd },
-  });
-
-  const totalRevenue = await Order.aggregate([
+  const pipeline = [
     {
       $match: {
-        $expr: {
-          $eq: [
-            { $arrayElemAt: ["$deliveryInfo.status", -1] },
-            orderStatus.SHIPPED,
-          ],
+        updatedAt: {
+          $gte: new Date(year, month - 1, day),
+          $lt: new Date(year, month - 1, day + 1),
         },
-        updatedAt: { $gte: todayStart, $lt: todayEnd },
+      },
+    },
+    {
+      $addFields: {
+        lastStatus: { $last: "$deliveryInfo.status" },
+      },
+    },
+    {
+      $match: {
+        lastStatus: orderStatus.SHIPPED
       },
     },
     {
       $group: {
         _id: null,
+        totalOrder: { $sum: 1 },
         totalRevenue: { $sum: "$finalPrice" },
       },
     },
-  ]);
+  ];
 
-  if (!totalRevenue[0]) totalRevenue[0] = { totalRevenue: 0 };
+  const result = await Order.aggregate(pipeline);
+  const totalOrder = result[0]?.totalOrder || 0;
+  const totalRevenue = result[0]?.totalRevenue || 0;
 
   const statistic = new Statistic({
     day: day,
     month: month,
     year: year,
     totalOrder: totalOrder,
-    totalRevenue: totalRevenue[0].totalRevenue,
+    totalRevenue: totalRevenue,
   });
 
   await statistic.save();
