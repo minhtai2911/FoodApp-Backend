@@ -53,6 +53,13 @@ const updateCoordinateById = asyncHandler(async (req, res, next) => {
     throw new Error(messages.MSG1);
   }
 
+  const coordinate = await Coordinate.findById(req.params.id);
+
+  if (!coordinate) {
+    logger.warn("Coordinate not found");
+    return res.status(404).json({ error: "Coordinate not found" });
+  }
+
   if (req.user.id.toString() !== coordinate.userId.toString()) {
     logger.warn(
       "Bạn không có quyền truy cập vào tài nguyên này. Vui lòng liên hệ với quản trị viên."
@@ -61,13 +68,6 @@ const updateCoordinateById = asyncHandler(async (req, res, next) => {
       message:
         "Bạn không có quyền truy cập vào tài nguyên này. Vui lòng liên hệ với quản trị viên.",
     });
-  }
-
-  const coordinate = await Coordinate.findById(req.params.id);
-
-  if (!coordinate) {
-    logger.warn("Coordinate not found");
-    return res.status(404).json({ error: "Coordinate not found" });
   }
 
   coordinate.latitude = latitude || coordinate.latitude;
