@@ -14,6 +14,7 @@ const getAllProducts = asyncHandler(async (req, res, next) => {
   let sortOrder = "asc";
 
   if (req.query.isActive) query.isActive = req.query.isActive;
+  if (req.query.categoryId) query.categoryId = req.query.categoryId;
   if (req.query.minPrice) query.price = { $gte: req.query.minPrice };
   if (req.query.maxPrice)
     query.price = { ...query.price, $lte: req.query.maxPrice };
