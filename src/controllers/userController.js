@@ -182,7 +182,7 @@ const createUser = asyncHandler(async (req, res, next) => {
     return res.status(409).json({ message: messages.MSG51 });
   }
 
-  if (exists.isGuest) {
+  if (exists && exists.isGuest) {
     exists.password = password;
     exists.email = email;
     exists.fullName = fullName;
@@ -193,8 +193,6 @@ const createUser = asyncHandler(async (req, res, next) => {
     logger.info(messages.MSG16);
     return res.status(201).json({ data: exists._id, message: messages.MSG22 });
   }
-
-  const role = await UserRole.findOne({ roleName: roleName });
 
   const newUser = new User({ email, fullName, phone, roleId, password });
   await newUser.save();
