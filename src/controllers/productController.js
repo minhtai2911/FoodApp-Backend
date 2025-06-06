@@ -14,7 +14,8 @@ const getAllProducts = asyncHandler(async (req, res, next) => {
   let sortOrder = "asc";
 
   if (req.query.isActive) query.isActive = req.query.isActive;
-  if (req.query.categoryId) query.categoryId = req.query.categoryId;
+  if (req.query.categoryIds)
+    query.categoryId = { $in: req.query.categoryIds.split(",") };
   if (req.query.minPrice) query.price = { $gte: req.query.minPrice };
   if (req.query.maxPrice)
     query.price = { ...query.price, $lte: req.query.maxPrice };
@@ -26,7 +27,7 @@ const getAllProducts = asyncHandler(async (req, res, next) => {
     query.isActive || "null"
   }:${req.query.minPrice || "null"}:${req.query.maxPrice || "null"}:${
     query.name || "null"
-  }`;
+  }:${req.query.categoryIds || "null"}`;
   const cachedProducts = await req.redisClient.get(cacheKey);
 
   if (cachedProducts) {
